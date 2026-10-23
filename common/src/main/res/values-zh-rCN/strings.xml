@@ -996,4 +996,15 @@
     <string name="settings_gwm_stop_steering_probe">停止方向盘探测</string>
     <string name="settings_gwm_stop_projection">停止仪表盘实时输出</string>
     <string name="settings_gwm_steering_idle">未捕获方向盘输入。</string>
+    <string name="settings_auth_import_title">CarPlay 认证资源</string>
+    <string name="settings_auth_status_installed">认证：已安装在此主机上</string>
+    <string name="settings_auth_status_missing">认证：未安装。导入之前 CarPlay 无法连接。</string>
+    <string name="settings_auth_import_files">导入 identity.pk8 和 certificate.p7b</string>
+    <string name="settings_auth_import_apk">从 DiPlay APK 导入</string>
+    <string name="settings_auth_import_description">源码构建不包含这些资源。请同时选择两个身份文件，或选择兼容的 DiPlay APK 以从中复制。它们保存在主机上的此应用内，并在下次连接时生效。</string>
+    <string name="settings_auth_import_done">CarPlay 认证已安装。请重新连接以使用。</string>
+    <string name="settings_auth_import_failed">无法导入 CarPlay 认证：%1$s</string>
+    <string name="settings_auth_import_need_both">请同时选择 identity.pk8 和 certificate.p7b。</string>
+    <string name="settings_auth_import_not_found">此文件不包含 CarPlay 认证资源。</string>
+    <string name="settings_auth_import_no_picker">此主机上没有可用的文件选择器。</string>
 </resources>

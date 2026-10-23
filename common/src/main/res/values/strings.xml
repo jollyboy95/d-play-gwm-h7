@@ -1039,4 +1039,15 @@
     <string name="settings_gwm_stop_steering_probe">Stop steering probe</string>
     <string name="settings_gwm_stop_projection">Stop live cluster output</string>
     <string name="settings_gwm_steering_idle">No steering observations captured.</string>
+    <string name="settings_auth_import_title">CarPlay authentication resources</string>
+    <string name="settings_auth_status_installed">Authentication: installed on this head unit</string>
+    <string name="settings_auth_status_missing">Authentication: not installed. CarPlay cannot connect until you import it.</string>
+    <string name="settings_auth_import_files">Import identity.pk8 and certificate.p7b</string>
+    <string name="settings_auth_import_apk">Import from a DiPlay APK</string>
+    <string name="settings_auth_import_description">Source builds do not include these resources. Pick both identity files together, or pick a compatible DiPlay APK to copy them from. They stay in this app on the head unit and apply at the next connection.</string>
+    <string name="settings_auth_import_done">CarPlay authentication installed. Connect again to use it.</string>
+    <string name="settings_auth_import_failed">Could not import CarPlay authentication: %1$s</string>
+    <string name="settings_auth_import_need_both">Select both identity.pk8 and certificate.p7b at the same time.</string>
+    <string name="settings_auth_import_not_found">This file has no CarPlay authentication resources.</string>
+    <string name="settings_auth_import_no_picker">No file picker is available on this head unit.</string>
 </resources>

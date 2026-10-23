@@ -985,4 +985,15 @@
     <string name="settings_gwm_stop_steering_probe">إيقاف فحص المقود</string>
     <string name="settings_gwm_stop_projection">إيقاف إخراج المجموعة المباشر</string>
     <string name="settings_gwm_steering_idle">لم يتم تسجيل أي ملاحظات للمقود.</string>
+    <string name="settings_auth_import_title">موارد مصادقة CarPlay</string>
+    <string name="settings_auth_status_installed">المصادقة: مثبتة على هذه الوحدة</string>
+    <string name="settings_auth_status_missing">المصادقة: غير مثبتة. لا يمكن اتصال CarPlay حتى تستوردها.</string>
+    <string name="settings_auth_import_files">استيراد identity.pk8 و certificate.p7b</string>
+    <string name="settings_auth_import_apk">استيراد من ملف APK لـ DiPlay</string>
+    <string name="settings_auth_import_description">إصدارات المصدر لا تتضمن هذه الموارد. اختر ملفي الهوية معًا، أو اختر ملف APK متوافقًا لـ DiPlay لنسخها منه. تبقى داخل هذا التطبيق على الوحدة وتُطبق عند الاتصال التالي.</string>
+    <string name="settings_auth_import_done">تم تثبيت مصادقة CarPlay. اتصل مرة أخرى لاستخدامها.</string>
+    <string name="settings_auth_import_failed">تعذر استيراد مصادقة CarPlay: %1$s</string>
+    <string name="settings_auth_import_need_both">اختر identity.pk8 و certificate.p7b معًا.</string>
+    <string name="settings_auth_import_not_found">لا يحتوي هذا الملف على موارد مصادقة CarPlay.</string>
+    <string name="settings_auth_import_no_picker">لا يتوفر منتقي ملفات على هذه الوحدة.</string>
 </resources>

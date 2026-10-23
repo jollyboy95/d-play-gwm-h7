@@ -343,6 +343,50 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     private val export = registerForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
         if (uri != null) exportDiagnostics(uri)
     }
+    // CarPlay authentication resources: source builds ship without them, so the driver imports
+    // identity.pk8 + certificate.p7b, or copies them out of a compatible DiPlay APK.
+    private val authFilesPicker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (uris.isNotEmpty()) importAuthentication {
+            if (uris.size != 2) throw AuthenticationImport.ImportException(getString(R.string.settings_auth_import_need_both))
+            val (first, second) = uris.map { uri ->
+                contentResolver.openInputStream(uri)?.use(AuthenticationImport::readBounded)
+                    ?: throw AuthenticationImport.ImportException(getString(R.string.settings_auth_import_need_both))
+            }
+            AuthenticationImport.fromFiles(first, second)
+        }
+    }
+    private val authApkPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) importAuthentication {
+            contentResolver.openInputStream(uri)?.use(AuthenticationImport::fromApk)
+                ?: throw AuthenticationImport.ImportException(getString(R.string.settings_auth_import_not_found))
+        }
+    }
+    private fun launchAuthPicker(launch: () -> Unit) {
+        runCatching(launch).onFailure { toast(getString(R.string.settings_auth_import_no_picker)) }
+    }
+    private fun importAuthentication(read: () -> AuthenticationImport.Resources) {
+        Thread({
+            val result = runCatching { AuthenticationImport.install(applicationContext, read()) }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                result.onSuccess {
+                    DiPlayBootstrap.reset()
+                    setupError = runCatching { DiPlayBootstrap.ensure(this, AirPlayPersistence.loadMfiTarget(this)) }
+                        .exceptionOrNull()?.let {
+                            android.util.Log.e("DiPlaySetup", "CarPlay authentication could not be loaded", it)
+                            getString(R.string.setup_error_auth)
+                        }
+                    toast(getString(R.string.settings_auth_import_done))
+                }.onFailure { error ->
+                    android.util.Log.w("DiPlaySetup", "CarPlay authentication import failed: ${error.javaClass.simpleName}")
+                    val reason = (error as? AuthenticationImport.ImportException)?.message
+                        ?: getString(R.string.settings_auth_import_not_found)
+                    toast(getString(R.string.settings_auth_import_failed, reason))
+                }
+                render()
+            }
+        }, "auth-import").start()
+    }
     // Android 9: storage access puts the report in the visible Downloads/DiPlay folder.
     // A denial still saves the report, only in DiPlay's own storage.
     private val reportStoragePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
@@ -1757,6 +1801,21 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
                     }
                 }
                 card.addView(label(getString(R.string.settings_mfi_target_description), 14, MUTED))
+            }
+            if (storedMfiTarget == MfiTarget.LOCAL) {
+                card.addView(space(12))
+                card.addView(label(getString(R.string.settings_auth_import_title), 16, ACCENT, bold = true))
+                val installed = AuthenticationImport.installed(this)
+                card.addView(label(getString(
+                    if (installed) R.string.settings_auth_status_installed else R.string.settings_auth_status_missing),
+                    14, if (installed) MUTED else WARNING))
+                card.addView(button(getString(R.string.settings_auth_import_files), !installed) {
+                    launchAuthPicker { authFilesPicker.launch(arrayOf("*/*")) }
+                }, matchButton(10, 60))
+                card.addView(button(getString(R.string.settings_auth_import_apk), false) {
+                    launchAuthPicker { authApkPicker.launch(arrayOf("application/vnd.android.package-archive", "*/*")) }
+                }, matchButton(10, 60))
+                card.addView(label(getString(R.string.settings_auth_import_description), 14, MUTED).apply { setPadding(0, dp(10), 0, 0) })
             }
         }
         filteredSection(content, SettingsSection.DIAGNOSTICS,

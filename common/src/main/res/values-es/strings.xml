@@ -936,4 +936,15 @@
     <string name="settings_gwm_stop_steering_probe">Detener prueba del volante</string>
     <string name="settings_gwm_stop_projection">Detener salida en directo del cuadro</string>
     <string name="settings_gwm_steering_idle">No se capturaron eventos del volante.</string>
+    <string name="settings_auth_import_title">Recursos de autenticación de CarPlay</string>
+    <string name="settings_auth_status_installed">Autenticación: instalada en esta unidad</string>
+    <string name="settings_auth_status_missing">Autenticación: no instalada. CarPlay no puede conectar hasta que la importes.</string>
+    <string name="settings_auth_import_files">Importar identity.pk8 y certificate.p7b</string>
+    <string name="settings_auth_import_apk">Importar desde un APK de DiPlay</string>
+    <string name="settings_auth_import_description">Las compilaciones desde el código fuente no incluyen estos recursos. Elige los dos archivos de identidad a la vez o un APK compatible de DiPlay para copiarlos. Se guardan en esta app de la unidad y se aplican en la próxima conexión.</string>
+    <string name="settings_auth_import_done">Autenticación de CarPlay instalada. Vuelve a conectar para usarla.</string>
+    <string name="settings_auth_import_failed">No se pudo importar la autenticación de CarPlay: %1$s</string>
+    <string name="settings_auth_import_need_both">Selecciona identity.pk8 y certificate.p7b a la vez.</string>
+    <string name="settings_auth_import_not_found">Este archivo no contiene recursos de autenticación de CarPlay.</string>
+    <string name="settings_auth_import_no_picker">No hay selector de archivos en esta unidad.</string>
 </resources>

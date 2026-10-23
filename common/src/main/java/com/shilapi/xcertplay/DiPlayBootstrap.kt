@@ -11,6 +11,9 @@ import java.security.MessageDigest
 internal object DiPlayBootstrap {
     @Volatile private var ready = false
 
+    /** Forget the loaded identity so the next [ensure] reads a newly imported one. */
+    @Synchronized fun reset() { ready = false }
+
     @Synchronized fun ensure(context: Context, mfiTarget: MfiTarget) {
         if (mfiTarget != MfiTarget.LOCAL) return
         if (ready) return

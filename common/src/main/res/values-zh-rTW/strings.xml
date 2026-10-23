@@ -996,4 +996,15 @@
     <string name="settings_gwm_stop_steering_probe">停止方向盤探測</string>
     <string name="settings_gwm_stop_projection">停止儀表板即時輸出</string>
     <string name="settings_gwm_steering_idle">未擷取方向盤輸入。</string>
+    <string name="settings_auth_import_title">CarPlay 驗證資源</string>
+    <string name="settings_auth_status_installed">驗證：已安裝在此主機上</string>
+    <string name="settings_auth_status_missing">驗證：未安裝。匯入前 CarPlay 無法連線。</string>
+    <string name="settings_auth_import_files">匯入 identity.pk8 和 certificate.p7b</string>
+    <string name="settings_auth_import_apk">從 DiPlay APK 匯入</string>
+    <string name="settings_auth_import_description">原始碼建置不包含這些資源。請同時選擇兩個身分檔案，或選擇相容的 DiPlay APK 以從中複製。它們儲存在主機上的此應用程式內，並在下次連線時生效。</string>
+    <string name="settings_auth_import_done">CarPlay 驗證已安裝。請重新連線以使用。</string>
+    <string name="settings_auth_import_failed">無法匯入 CarPlay 驗證：%1$s</string>
+    <string name="settings_auth_import_need_both">請同時選擇 identity.pk8 和 certificate.p7b。</string>
+    <string name="settings_auth_import_not_found">此檔案不包含 CarPlay 驗證資源。</string>
+    <string name="settings_auth_import_no_picker">此主機上沒有可用的檔案選擇器。</string>
 </resources>

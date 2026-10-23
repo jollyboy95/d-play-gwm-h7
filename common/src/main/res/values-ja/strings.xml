@@ -1038,4 +1038,15 @@
     <string name="settings_gwm_stop_steering_probe">ステアリング調査を停止</string>
     <string name="settings_gwm_stop_projection">メーターへのライブ出力を停止</string>
     <string name="settings_gwm_steering_idle">ステアリング入力は記録されていません。</string>
+    <string name="settings_auth_import_title">CarPlay 認証リソース</string>
+    <string name="settings_auth_status_installed">認証: このユニットにインストール済み</string>
+    <string name="settings_auth_status_missing">認証: 未インストール。インポートするまで CarPlay は接続できません。</string>
+    <string name="settings_auth_import_files">identity.pk8 と certificate.p7b をインポート</string>
+    <string name="settings_auth_import_apk">DiPlay APK からインポート</string>
+    <string name="settings_auth_import_description">ソースビルドにはこれらのリソースが含まれません。2 つの ID ファイルを同時に選ぶか、互換性のある DiPlay APK を選んでコピーしてください。ユニット上のこのアプリ内に保存され、次回の接続から適用されます。</string>
+    <string name="settings_auth_import_done">CarPlay 認証をインストールしました。もう一度接続して使用してください。</string>
+    <string name="settings_auth_import_failed">CarPlay 認証をインポートできませんでした: %1$s</string>
+    <string name="settings_auth_import_need_both">identity.pk8 と certificate.p7b を同時に選択してください。</string>
+    <string name="settings_auth_import_not_found">このファイルには CarPlay 認証リソースがありません。</string>
+    <string name="settings_auth_import_no_picker">このユニットにはファイル選択アプリがありません。</string>
 </resources>

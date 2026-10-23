@@ -948,4 +948,15 @@
     <string name="settings_gwm_stop_steering_probe">Зупинити опитування керма</string>
     <string name="settings_gwm_stop_projection">Зупинити вивід на панель</string>
     <string name="settings_gwm_steering_idle">Подій керма не зафіксовано.</string>
+    <string name="settings_auth_import_title">Ресурси автентифікації CarPlay</string>
+    <string name="settings_auth_status_installed">Автентифікація: встановлена на цьому пристрої</string>
+    <string name="settings_auth_status_missing">Автентифікація: не встановлена. CarPlay не підключиться, доки ви її не імпортуєте.</string>
+    <string name="settings_auth_import_files">Імпортувати identity.pk8 і certificate.p7b</string>
+    <string name="settings_auth_import_apk">Імпортувати з APK DiPlay</string>
+    <string name="settings_auth_import_description">Збірки з вихідного коду не містять цих ресурсів. Виберіть обидва файли ідентифікації разом або сумісний APK DiPlay, щоб скопіювати їх. Вони зберігаються в цій програмі на пристрої й застосовуються під час наступного підключення.</string>
+    <string name="settings_auth_import_done">Автентифікацію CarPlay встановлено. Підключіться знову, щоб її використати.</string>
+    <string name="settings_auth_import_failed">Не вдалося імпортувати автентифікацію CarPlay: %1$s</string>
+    <string name="settings_auth_import_need_both">Виберіть identity.pk8 і certificate.p7b одночасно.</string>
+    <string name="settings_auth_import_not_found">У цьому файлі немає ресурсів автентифікації CarPlay.</string>
+    <string name="settings_auth_import_no_picker">На цьому пристрої немає засобу вибору файлів.</string>
 </resources>
