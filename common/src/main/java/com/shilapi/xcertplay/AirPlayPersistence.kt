@@ -89,6 +89,7 @@ object AirPlayPersistence {
     private const val KEY_GWM_CLUSTER_DISPLAY_ID = "gwm_cluster_display_id"
     private const val KEY_GWM_CLUSTER_OVERLAY_ENABLED = "gwm_cluster_overlay_enabled"
     private const val KEY_GWM_FORCED = "gwm_forced"
+    private const val KEY_GWM_CLUSTER_STYLE = "gwm_cluster_style"
 
     /**
      * The Geely cluster projection switch is DiPlay's right now. The switch belongs to the head unit
@@ -860,6 +861,13 @@ object AirPlayPersistence {
             editor.putInt(KEY_GWM_CLUSTER_DISPLAY_ID, displayId)
         }
         editor.apply()
+    }
+
+    fun loadGwmClusterStyle(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_GWM_CLUSTER_STYLE, true)
+
+    fun saveGwmClusterStyle(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_GWM_CLUSTER_STYLE, enabled).apply()
     }
 
     fun loadGwmForced(context: Context): Boolean =

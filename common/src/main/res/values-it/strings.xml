@@ -1048,4 +1048,6 @@
     <string name="settings_gwm_overlay_allow">Consenti di mostrare sopra altre app</string>
     <string name="settings_gwm_adb_route_conflict">L’instradamento del quadro tramite ADB è attivo nella scheda della mappa del quadro. Disattivalo lì, altrimenti il percorso GWM viene saltato.</string>
     <string name="settings_gwm_test_failed">Impossibile aprire il test sul display %1$d: %2$s</string>
+    <string name="settings_gwm_style">Quadro stile Aston</string>
+    <string name="settings_gwm_style_description">Disegna una scheda di svolta con orario di arrivo, tempo e distanza rimanenti, oltre a velocità, carburante, autonomia, marcia e temperatura esterna sopra la mappa in tempo reale. Usa le letture dell’auto e si applica alla connessione successiva.</string>
 </resources>

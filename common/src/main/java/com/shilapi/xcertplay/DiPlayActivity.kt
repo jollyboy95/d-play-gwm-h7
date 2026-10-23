@@ -586,6 +586,12 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
             markReconnectNeeded()
             render()
         }
+        reconnectingToggle(card, getString(R.string.settings_gwm_style),
+            getString(R.string.settings_gwm_style_description), AirPlayPersistence.loadGwmClusterStyle(this)) { on ->
+            AirPlayPersistence.saveGwmClusterStyle(this, on)
+            markReconnectNeeded()
+            render()
+        }
         val overlayAllowed = Settings.canDrawOverlays(this)
         card.addView(label(getString(
             if (overlayAllowed) R.string.settings_gwm_overlay_granted else R.string.settings_gwm_overlay_missing),
@@ -601,6 +607,8 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
             gwmScanResult = buildString {
                 append(org.dplay.gwm.GwmDisplayAdapter(this@DiPlayActivity).dump())
                 append(ClusterMapPresentation.diagnosticReport(this@DiPlayActivity))
+                append('\n')
+                append(GwmVehicleData.describe(this@DiPlayActivity))
             }.trim()
             render()
         }, matchButton(10, 56))

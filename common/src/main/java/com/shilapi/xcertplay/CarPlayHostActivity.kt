@@ -464,6 +464,12 @@ class CarPlayHostActivity : ComponentActivity() {
     private var clusterSurface: Surface? = null
     private var gwmProjectionOverlay: GwmLiveProjectionOverlay? = null
     private var gwmProjectionGeneration = 0
+    // Aston-style GWM layer over the live map: turn card with ETA strip, and the vehicle strip.
+    private var gwmTurnCard: ClusterTurnCardView? = null
+    private var gwmHud: GwmClusterHudView? = null
+    private val gwmVehicleListener: (GwmVehicleData.Snapshot?) -> Unit = { snapshot ->
+        gwmHud?.let { hud -> hud.post { hud.setSnapshot(snapshot) } }
+    }
     private var clusterMonitor: DiLink51ClusterMonitor? = null
     private var detectedCluster = ClusterActivityState.Snapshot(null, false)
     // Keep one surface per layer alive, including while its map card is hidden.
@@ -1410,14 +1416,31 @@ class CarPlayHostActivity : ComponentActivity() {
         val generation = ++gwmProjectionGeneration
         val overlay = gwmProjectionOverlay ?: GwmLiveProjectionOverlay(applicationContext)
             .also { gwmProjectionOverlay = it }
+        val styled = AirPlayPersistence.loadGwmClusterStyle(this)
+        val decor = if (!styled) null else GwmLiveProjectionOverlay.DecorFactory { displayContext ->
+            android.widget.FrameLayout(displayContext).apply {
+                val card = ClusterTurnCardView(displayContext).apply {
+                    setFreePlacement(0.022f, 0.05f, 0.29f)
+                    setNightMode(true)
+                    setOpacity(AirPlayPersistence.loadClusterTurnCardOpacityPercent(this@CarPlayHostActivity))
+                    setGuidance(clusterTurnGuidance)
+                }
+                val hud = GwmClusterHudView(displayContext)
+                addView(card, android.widget.FrameLayout.LayoutParams(-1, -1))
+                addView(hud, android.widget.FrameLayout.LayoutParams(-1, -1))
+                gwmTurnCard = card
+                gwmHud = hud
+            }
+        }
         try {
-            overlay.show(display.displayId) { surface ->
+            overlay.show(display.displayId, { surface ->
                 runOnUiThread {
                     if (generation != gwmProjectionGeneration || isDestroyed ||
                         SCREEN_TYPE_ALT !in activeScreenStreamTypes) return@runOnUiThread
                     onClusterSurface(surface)
                 }
-            }
+            }, decor)
+            if (styled) GwmVehicleData.addListener(this, gwmVehicleListener)
             val size = ClusterMapPresentation.sizeOf(display)
             val result = "Live alternate stream overlay added on display ${display.displayId}:${display.name} " +
                 "${size.x}x${size.y} flags=0x${display.flags.toString(16)}"
@@ -1433,7 +1456,10 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun stopGwmProjectionOverlay() {
         gwmProjectionGeneration++
+        GwmVehicleData.removeListener(gwmVehicleListener)
         gwmProjectionOverlay?.hide()
+        gwmTurnCard = null
+        gwmHud = null
         val surface = clusterSurface
         if (surface != null) {
             sink?.clearSurface(SCREEN_TYPE_ALT, surface)
@@ -1527,8 +1553,15 @@ class CarPlayHostActivity : ComponentActivity() {
         applyClusterTurnOverlay()
     }
 
+    /** The Aston-style GWM layer draws its own turn card, so it asks the iPhone for the map alone. */
+    private fun gwmStyled(): Boolean = GwmMode.active(this) && AirPlayPersistence.loadGwmClusterStyle(this)
+
+    private fun clusterContent(): CarPlayClusterDisplay.Content =
+        if (gwmStyled()) CarPlayClusterDisplay.Content.MAP_WITH_CUSTOM_CARD else AirPlayPersistence.loadClusterContent(this)
+
     private fun applyClusterTurnOverlay() {
-        val overlay = CarPlayClusterDisplay.usesCustomTurnCard(AirPlayPersistence.loadClusterContent(this))
+        val overlay = CarPlayClusterDisplay.usesCustomTurnCard(clusterContent())
+        gwmTurnCard?.setGuidance(if (overlay) clusterTurnGuidance else null)
         // CN: the small-window navi keeps a second card rect, and the card glass has a theme override.
         val smallWindow = smallWindowActive()
         val xPercent = if (smallWindow) AirPlayPersistence.loadClusterSmallWindowCardXPercent(this)
@@ -1672,7 +1705,7 @@ class CarPlayHostActivity : ComponentActivity() {
                     scale,
                     0,
                     0,
-                    AirPlayPersistence.loadClusterContent(this),
+                    clusterContent(),
                     markerXPercent = if (smallWindow) AirPlayPersistence.loadClusterSmallWindowMarkerXPercent(this)
                     else AirPlayPersistence.loadClusterMarkerXPercent(this),
                     markerYPercent = if (smallWindow) AirPlayPersistence.loadClusterSmallWindowMarkerYPercent(this)

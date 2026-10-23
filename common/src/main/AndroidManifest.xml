@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- GWM/Haval head units: read-only vehicle values from the gwm_adapter service (speed, gear, fuel). -->
+    <uses-permission android:name="com.gwm.permission.VEHICLE_DATA" />
+    <uses-permission android:name="com.gwm.permission.VEHICLE_SIGNAL" />
+    <uses-permission android:name="com.gwm.android.adapter.permission.GET_DATA" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Optional, user-authorized startup of the car's own hotspot. -->
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />

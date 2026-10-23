@@ -1060,4 +1060,6 @@
     <string name="settings_gwm_overlay_allow">他のアプリの上に表示を許可</string>
     <string name="settings_gwm_adb_route_conflict">メーター地図カードで ADB メーター経路がオンです。そこでオフにしないと GWM 経路はスキップされます。</string>
     <string name="settings_gwm_test_failed">ディスプレイ %1$d でテストを開けませんでした: %2$s</string>
+    <string name="settings_gwm_style">Aston スタイルのメーター</string>
+    <string name="settings_gwm_style_description">ライブ地図の上に、到着時刻・残り時間・残り距離付きの曲がり角カードと、速度・燃料・航続距離・ギア・外気温を表示します。車両自身の値を使い、次回の接続から適用されます。</string>
 </resources>

@@ -958,4 +958,6 @@
     <string name="settings_gwm_overlay_allow">Разрешить показ поверх других приложений</string>
     <string name="settings_gwm_adb_route_conflict">В карточке карты на приборной панели включена маршрутизация через ADB. Отключите её там, иначе маршрут GWM будет пропущен.</string>
     <string name="settings_gwm_test_failed">Не удалось открыть тест на дисплее %1$d: %2$s</string>
+    <string name="settings_gwm_style">Приборная панель в стиле Aston</string>
+    <string name="settings_gwm_style_description">Показывает поверх карты карточку манёвра со временем прибытия, оставшимся временем и расстоянием, а также скорость, топливо, запас хода, передачу и наружную температуру. Использует показания автомобиля и применяется при следующем подключении.</string>
 </resources>

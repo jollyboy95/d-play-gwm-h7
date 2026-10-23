@@ -970,4 +970,6 @@
     <string name="settings_gwm_overlay_allow">Дозволити показ поверх інших програм</string>
     <string name="settings_gwm_adb_route_conflict">У картці карти на панелі приладів увімкнено маршрутизацію через ADB. Вимкніть її там, інакше маршрут GWM буде пропущено.</string>
     <string name="settings_gwm_test_failed">Не вдалося відкрити тест на дисплеї %1$d: %2$s</string>
+    <string name="settings_gwm_style">Панель приладів у стилі Aston</string>
+    <string name="settings_gwm_style_description">Показує поверх карти картку маневру з часом прибуття, рештою часу й відстані, а також швидкість, пальне, запас ходу, передачу й зовнішню температуру. Використовує показники автомобіля й застосовується під час наступного підключення.</string>
 </resources>

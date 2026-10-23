@@ -1061,4 +1061,6 @@
     <string name="settings_gwm_overlay_allow">Allow display over other apps</string>
     <string name="settings_gwm_adb_route_conflict">ADB cluster routing is on in the dashboard map card. Turn it off there, or the GWM route is skipped.</string>
     <string name="settings_gwm_test_failed">Could not open the test on display %1$d: %2$s</string>
+    <string name="settings_gwm_style">Aston-style cluster</string>
+    <string name="settings_gwm_style_description">Draws a turn card with arrival time, time and distance left, plus speed, fuel, range, gear and outside temperature over the live map. Uses the car\'s own readings and applies at the next connection.</string>
 </resources>

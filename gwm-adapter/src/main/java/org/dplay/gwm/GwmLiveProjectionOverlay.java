@@ -13,7 +13,9 @@ import android.view.Gravity;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 
 /** Hosts the actual decoder output surface in a non-interactive overlay on a selected display. */
 public final class GwmLiveProjectionOverlay {
@@ -21,8 +23,14 @@ public final class GwmLiveProjectionOverlay {
         void onSurfaceChanged(Surface surface);
     }
 
+    /** Builds an optional layer drawn above the live map, in the cluster display's context. */
+    public interface DecorFactory {
+        View create(Context displayContext);
+    }
+
     private final Context appContext;
     private SurfaceView surfaceView;
+    private View windowRoot;
     private WindowManager windowManager;
     private int displayId = Display.INVALID_DISPLAY;
 
@@ -31,6 +39,10 @@ public final class GwmLiveProjectionOverlay {
     }
 
     public void show(int logicalDisplayId, SurfaceListener listener) {
+        show(logicalDisplayId, listener, null);
+    }
+
+    public void show(int logicalDisplayId, SurfaceListener listener, DecorFactory decor) {
         hide();
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
             throw new IllegalStateException("Cluster overlays need Android 8.0 (API 26) or newer");
@@ -71,12 +83,26 @@ public final class GwmLiveProjectionOverlay {
                         | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                 PixelFormat.OPAQUE);
         layout.gravity = Gravity.TOP | Gravity.START;
+        // The map surface sits under the window; views in the same window draw over it.
+        View root = view;
+        if (decor != null) {
+            FrameLayout frame = new FrameLayout(displayContext);
+            frame.addView(view, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+            View layer = decor.create(displayContext);
+            if (layer != null) {
+                frame.addView(layer, new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+            }
+            root = frame;
+        }
         try {
-            manager.addView(view, layout);
+            manager.addView(root, layout);
         } catch (RuntimeException error) {
             throw new IllegalStateException("Could not add live CarPlay overlay on display " + logicalDisplayId, error);
         }
         surfaceView = view;
+        windowRoot = root;
         windowManager = manager;
         displayId = logicalDisplayId;
     }
@@ -90,9 +116,10 @@ public final class GwmLiveProjectionOverlay {
     }
 
     public void hide() {
-        SurfaceView view = surfaceView;
+        View view = windowRoot != null ? windowRoot : surfaceView;
         WindowManager manager = windowManager;
         surfaceView = null;
+        windowRoot = null;
         windowManager = null;
         displayId = Display.INVALID_DISPLAY;
         if (view != null && manager != null) {

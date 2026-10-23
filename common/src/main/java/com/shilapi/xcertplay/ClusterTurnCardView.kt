@@ -68,6 +68,13 @@ internal class ClusterTurnCardView(context: Context) : View(context) {
         invalidate()
     }
 
+    /** Fixed card placement in panel fractions (GWM layout); null returns to the percent layout. */
+    private var freeCard: FloatArray? = null
+    fun setFreePlacement(leftFraction: Float, topFraction: Float, widthFraction: Float) {
+        freeCard = floatArrayOf(leftFraction, topFraction, widthFraction)
+        invalidate()
+    }
+
     /** Percent 20..100 of the card's background alpha; text stays readable at any value. */
     fun setOpacity(percent: Int) {
         val next = percent.coerceIn(20, 100)
@@ -127,7 +134,10 @@ internal class ClusterTurnCardView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val next = guidance ?: return
-        val card = ClusterTurnCardOverlay.card(width, height, xPercent, yPercent, sizePercent)
+        val card = freeCard?.let { (l, t, w) ->
+            val cardWidth = (width * w).toInt().coerceAtLeast(150)
+            ClusterTurnCardOverlay.CardRect((width * l).toInt(), (height * t).toInt(), cardWidth, (cardWidth / 2.64f).toInt())
+        } ?: ClusterTurnCardOverlay.card(width, height, xPercent, yPercent, sizePercent)
         val h = card.height.toFloat()
         val w = card.width.toFloat()
 
