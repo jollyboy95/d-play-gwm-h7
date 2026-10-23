@@ -9,6 +9,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.view.View
 import androidx.core.content.ContextCompat
+import com.shilapi.xcertplay.host.R
 import com.shilapi.xcertplay.hud.ClusterTurnGuidance
 import java.util.Locale
 import kotlin.math.roundToInt
