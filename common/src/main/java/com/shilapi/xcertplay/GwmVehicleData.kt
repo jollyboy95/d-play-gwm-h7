@@ -103,7 +103,8 @@ internal object GwmVehicleData {
             data.writeInt(1)
             check(service.transact(TRANSACTION_GET_DATA, data, reply, 0)) { "transact returned false" }
             reply.readException()
-            return pair(keys, reply.createStringArray().orEmpty())
+            val values: Array<String> = reply.createStringArray()?.map { it ?: "" }?.toTypedArray() ?: emptyArray()
+            return pair(keys, values).filterValues { it.isNotEmpty() }
         } finally {
             reply.recycle()
             data.recycle()
