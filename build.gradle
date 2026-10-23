@@ -1,0 +1,5 @@
+// DiPlay GWM Adapter — root build file.
+// SPDX-License-Identifier: GPL-3.0-or-later
+plugins {
+    id 'com.android.library' version '8.5.0' apply false
+}

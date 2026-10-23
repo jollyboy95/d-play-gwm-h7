@@ -1,0 +1,32 @@
+# Android / Gradle
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+build/
+.gradle/
+local.properties
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+captures/
+
+# Keystores / secrets — never commit
+*.jks
+*.keystore
+*.pk8
+*.p7b
+*.pem
+*.der
+secrets.properties
+
+# Logs
+*.log
