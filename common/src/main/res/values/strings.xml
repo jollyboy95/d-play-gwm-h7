@@ -1032,7 +1032,7 @@
     <string name="settings_gwm_cluster_display">H7 cluster display</string>
     <string name="settings_gwm_cluster_display_description">Select a display currently reported by Android. Display 2 is the observed H7 cluster; unavailable targets are not routed.</string>
     <string name="settings_gwm_live_output">Live iPhone cluster stream (experimental)</string>
-    <string name="settings_gwm_live_output_description">Route the iPhone's alternate cluster stream over the factory dials. Requires display-over-other-apps permission and a reconnect.</string>
+    <string name="settings_gwm_live_output_description">Route the iPhone\'s alternate cluster stream over the factory dials. Requires display-over-other-apps permission and a reconnect.</string>
     <string name="settings_gwm_scan_displays">Scan GWM displays and route status</string>
     <string name="settings_gwm_launch_test">Launch display test on selected screen</string>
     <string name="settings_gwm_start_steering_probe">Start read-only steering probe</string>

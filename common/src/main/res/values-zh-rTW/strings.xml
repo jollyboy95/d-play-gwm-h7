@@ -92,7 +92,7 @@
     <string name="resolution_handshake_prefix">交握解析度：</string>
     <string name="safe_area_full_screen_at">安全區域：全螢幕，</string>
     <string name="settings_android9_compat">以下設定在 Android 9（API 28）上無法使用且已隱藏：\n• HEVC 軟體解碼器 — 將改用硬體解碼。</string>
-    <string name="settings_mfi_address_hint">位址必須以 http\:// 或 https\:// 開頭。權杖為選用項目，將以 Authorization bearer token 傳送。</string>
+    <string name="settings_mfi_address_hint">位址必須以 http:// 或 https:// 開頭。權杖為選用項目，將以 Authorization bearer token 傳送。</string>
     <string name="a_familiar_drive">熟悉的駕駛體驗。</string>
     <string name="a_previous_wi_fi_direct_connection_is_still_running_reset">先前的 Wi-Fi Direct 連線仍在執行。請重設後再連線。</string>
     <string name="about">關於</string>
@@ -310,7 +310,7 @@
     <string name="remote">遠端</string>
     <string name="remote_server_address_contains_u_0000">遠端伺服器位址包含 U+0000</string>
     <string name="remote_server_address_is_required">必須填寫遠端伺服器位址</string>
-    <string name="remote_server_address_must_start_with_http_or_https">遠端伺服器位址必須以 http\:// 或 https\:// 開頭</string>
+    <string name="remote_server_address_must_start_with_http_or_https">遠端伺服器位址必須以 http:// 或 https:// 開頭</string>
     <string name="remote_token_contains_u_0000">遠端權杖包含 U+0000</string>
     <string name="report_android_location_to_the_iphone">向 iPhone 回報 Android 位置</string>
     <string name="report_location_to_iphone">向 iPhone 回報位置</string>
