@@ -1063,10 +1063,11 @@
     <string name="settings_gwm_style">Aston スタイルのメーター</string>
     <string name="settings_gwm_style_description">ライブ地図の上に、到着時刻・残り時間・残り距離付きの曲がり角カードと、速度・燃料・航続距離・ギア・外気温を表示します。車両自身の値を使い、次回の接続から適用されます。</string>
     <string name="settings_gwm_hud">ヘッドアップディスプレイ表示（実験的機能）</string>
-    <string name="settings_gwm_hud_description">HUD に速度、ルート案内中は距離付きの小さな曲がり矢印、航続距離と燃料バーを表示します。車両自身の HUD 表示は見えたままです。CarPlay 画面に戻ると適用されます。</string>
+    <string name="settings_gwm_hud_description">ルート案内中のみ、HUD に曲がり矢印と曲がり角までの距離、道路名、到着時刻を表示します。速度などは引き続き車両が表示します。CarPlay 画面に戻ると適用されます。</string>
     <string name="settings_gwm_hud_display">ヘッドアップディスプレイ</string>
     <string name="settings_gwm_hud_position">表示位置</string>
     <string name="settings_gwm_hud_left">左</string>
     <string name="settings_gwm_hud_centre">中央</string>
     <string name="settings_gwm_hud_right">右</string>
+    <string name="settings_gwm_hud_arrival">到着</string>
 </resources>

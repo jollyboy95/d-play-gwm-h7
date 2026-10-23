@@ -4,55 +4,45 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.view.View
 import androidx.core.content.ContextCompat
 import com.shilapi.xcertplay.host.R
 import com.shilapi.xcertplay.hud.ClusterTurnGuidance
-import java.util.Locale
-import kotlin.math.roundToInt
+import java.text.DateFormat
+import java.util.Date
 
 /**
- * The GWM head-up display strip: a large speed, a small turn arrow with its distance while a route
- * is active, and range with a fuel bar. The background stays transparent so the car's own HUD
- * readouts remain visible; on a windscreen HUD black is invisible anyway. Missing values are left out.
+ * The GWM head-up display strip: turn arrow, distance to the turn, road name and arrival time,
+ * only while a route is active. The car already projects speed and its own readouts, so nothing
+ * else is drawn and the background stays transparent; with no route the strip is empty.
  */
 internal class GwmHeadUpView(context: Context) : View(context) {
     enum class Anchor { LEFT, CENTRE, RIGHT }
 
-    private var snapshot: GwmVehicleData.Snapshot? = null
     private var guidance: ClusterTurnGuidance? = null
     private var anchor = Anchor.CENTRE
 
-    private val speedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val distancePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         typeface = Typeface.create("sans-serif", Typeface.BOLD)
-        textAlign = Paint.Align.CENTER
     }
-    private val small = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val roadPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(200, 210, 224)
+        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+    }
+    private val etaPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
     }
-    private val unit = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.rgb(190, 200, 214)
+    private val etaLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(160, 172, 188)
         typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-        textAlign = Paint.Align.CENTER
     }
-    private val track = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(70, 76, 88) }
-    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
-    private val low = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(255, 159, 10) }
     private val arrowTint = Color.rgb(90, 200, 250)
-    private val rect = RectF()
     private var glyph: Drawable? = null
     private var glyphRes = 0
-
-    fun setSnapshot(next: GwmVehicleData.Snapshot?) {
-        if (next == snapshot) return
-        snapshot = next
-        invalidate()
-    }
 
     fun setGuidance(next: ClusterTurnGuidance?) {
         if (next == guidance) return
@@ -67,67 +57,104 @@ internal class GwmHeadUpView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        val next = guidance?.takeIf { it.icon != 0 } ?: return
         val w = width.toFloat()
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
-        val data = snapshot
-        val next = guidance?.takeIf { it.icon != 0 }
 
-        // One row: [arrow + distance] [speed] [range + fuel], sized from the panel height.
-        val unitH = h * 0.62f
-        val sideW = unitH * 1.7f
-        val rowW = sideW * 2f + unitH * 1.5f
+        val unit = h * 0.5f
+        distancePaint.textSize = unit * 0.62f
+        roadPaint.textSize = unit * 0.30f
+        etaPaint.textSize = unit * 0.40f
+        etaLabelPaint.textSize = unit * 0.24f
+
+        val distance = distanceLabel(next.distanceMeters)
+        val road = roadLabel(next)
+        val eta = next.arrivalEpochSeconds?.takeIf { it > 0 }?.let {
+            DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it * 1000L))
+        }
+        val arrow = unit * 0.95f
+        val gap = unit * 0.28f
+        // A small, squarish HUD area (just the arrow window) gets the stacked layout instead.
+        if (w < h * 2.2f) {
+            drawStacked(canvas, next, distance, eta, w, h)
+            return
+        }
+        val textW = maxOf(distancePaint.measureText(distance), minOf(roadPaint.measureText(road), unit * 3.2f))
+        val etaW = eta?.let { maxOf(etaPaint.measureText(it), etaLabelPaint.measureText(etaLabel)) + gap * 2f } ?: 0f
+        val rowW = arrow + gap + textW + etaW
         val left = when (anchor) {
             Anchor.LEFT -> h * 0.15f
             Anchor.CENTRE -> (w - rowW) / 2f
             Anchor.RIGHT -> w - rowW - h * 0.15f
         }.coerceIn(0f, (w - rowW).coerceAtLeast(0f))
         val midY = h / 2f
-        val speedCx = left + sideW + unitH * 0.75f
 
-        data?.speedKph?.let { speed ->
-            speedPaint.textSize = unitH * 0.95f
-            canvas.drawText(speed.roundToInt().toString(), speedCx, midY + unitH * 0.28f, speedPaint)
-            unit.textSize = unitH * 0.20f
-            canvas.drawText("km/h", speedCx, midY + unitH * 0.56f, unit)
+        val res = clusterTurnGlyphRes(next.icon)
+        if (res != glyphRes) {
+            glyph = ContextCompat.getDrawable(context, res)?.mutate()?.apply { setTint(arrowTint) }
+            glyphRes = res
         }
+        glyph?.setBounds(left.toInt(), (midY - arrow / 2f).toInt(), (left + arrow).toInt(), (midY + arrow / 2f).toInt())
+        glyph?.draw(canvas)
 
-        next?.let { turn ->
-            val res = clusterTurnGlyphRes(turn.icon)
-            if (res != glyphRes) {
-                glyph = ContextCompat.getDrawable(context, res)?.mutate()?.apply { setTint(arrowTint) }
-                glyphRes = res
-            }
-            val side = unitH * 0.62f
-            val gx = left + sideW - side - unitH * 0.15f
-            glyph?.setBounds(gx.toInt(), (midY - side * 0.85f).toInt(), (gx + side).toInt(), (midY + side * 0.15f).toInt())
-            glyph?.draw(canvas)
-            small.textSize = unitH * 0.24f
-            small.textAlign = Paint.Align.RIGHT
-            canvas.drawText(distance(turn.distanceMeters), gx + side, midY + unitH * 0.48f, small)
+        val textLeft = left + arrow + gap
+        canvas.drawText(distance, textLeft, midY + unit * 0.05f, distancePaint)
+        if (road.isNotEmpty()) {
+            canvas.drawText(ellipsize(road, unit * 3.2f, roadPaint), textLeft, midY + unit * 0.48f, roadPaint)
         }
-
-        val rangeLeft = left + sideW + unitH * 1.5f + unitH * 0.15f
-        data?.rangeKm?.let { range ->
-            small.textSize = unitH * 0.26f
-            small.textAlign = Paint.Align.LEFT
-            canvas.drawText(String.format(Locale.getDefault(), "%d km", range.roundToInt()),
-                rangeLeft, midY - unitH * 0.05f, small)
-        }
-        data?.fuelPercent?.let { fuel ->
-            val barW = sideW * 0.8f
-            val barH = unitH * 0.07f
-            val top = midY + unitH * 0.16f
-            rect.set(rangeLeft, top, rangeLeft + barW, top + barH)
-            canvas.drawRoundRect(rect, barH, barH, track)
-            rect.right = rangeLeft + barW * (fuel / 100f).coerceIn(0.03f, 1f)
-            canvas.drawRoundRect(rect, barH, barH, if (fuel < 15f) low else fill)
+        eta?.let {
+            val etaLeft = textLeft + textW + gap * 2f
+            canvas.drawText(etaLabel, etaLeft, midY - unit * 0.18f, etaLabelPaint)
+            canvas.drawText(it, etaLeft, midY + unit * 0.30f, etaPaint)
         }
     }
 
-    private fun distance(meters: Int): String = when {
+    /** Arrow on top, distance under it, arrival time last; everything centred and sized to fit. */
+    private fun drawStacked(canvas: Canvas, next: ClusterTurnGuidance, distance: String, eta: String?, w: Float, h: Float) {
+        val lines = if (eta != null) 3.0f else 2.3f
+        val unit = minOf(h / lines, w * 0.62f)
+        val arrow = unit * 1.05f
+        val total = arrow + unit * 0.75f + (if (eta != null) unit * 0.55f else 0f)
+        var y = (h - total) / 2f
+        val cx = w / 2f
+        val res = clusterTurnGlyphRes(next.icon)
+        if (res != glyphRes) {
+            glyph = ContextCompat.getDrawable(context, res)?.mutate()?.apply { setTint(arrowTint) }
+            glyphRes = res
+        }
+        glyph?.setBounds((cx - arrow / 2f).toInt(), y.toInt(), (cx + arrow / 2f).toInt(), (y + arrow).toInt())
+        glyph?.draw(canvas)
+        y += arrow
+        distancePaint.textSize = unit * 0.55f
+        distancePaint.textAlign = Paint.Align.CENTER
+        val shown = ellipsize(distance, w * 0.96f, distancePaint)
+        canvas.drawText(shown, cx, y + unit * 0.62f, distancePaint)
+        distancePaint.textAlign = Paint.Align.LEFT
+        y += unit * 0.75f
+        eta?.let {
+            etaPaint.textSize = unit * 0.36f
+            etaPaint.textAlign = Paint.Align.CENTER
+            canvas.drawText(ellipsize("$etaLabel $it", w * 0.96f, etaPaint), cx, y + unit * 0.42f, etaPaint)
+            etaPaint.textAlign = Paint.Align.LEFT
+        }
+    }
+
+    private val etaLabel: String get() = context.getString(R.string.settings_gwm_hud_arrival)
+
+    private fun distanceLabel(meters: Int): String = when {
         meters <= 20 -> context.getString(R.string.turn_card_now)
         meters < 1000 -> context.getString(R.string.turn_card_distance_m, (meters / 10) * 10)
         else -> context.getString(R.string.turn_card_distance_km, meters / 100 / 10f)
+    }
+
+    private fun roadLabel(next: ClusterTurnGuidance): String =
+        if (next.roundaboutExit in 1..9) context.getString(R.string.turn_card_exit, next.roundaboutExit) else next.road
+
+    private fun ellipsize(text: String, maxWidth: Float, paint: Paint): String {
+        if (paint.measureText(text) <= maxWidth) return text
+        var end = text.length
+        while (end > 0 && paint.measureText(text.take(end) + "…") > maxWidth) end--
+        return text.take(end) + "…"
     }
 }

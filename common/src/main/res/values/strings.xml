@@ -1064,10 +1064,11 @@
     <string name="settings_gwm_style">Aston-style cluster</string>
     <string name="settings_gwm_style_description">Draws a turn card with arrival time, time and distance left, plus speed, fuel, range, gear and outside temperature over the live map. Uses the car\'s own readings and applies at the next connection.</string>
     <string name="settings_gwm_hud">Head-up display strip (experimental)</string>
-    <string name="settings_gwm_hud_description">Shows speed, a small turn arrow with distance during a route, and range with a fuel bar on the head-up display. The car\'s own HUD readouts stay visible. Applies when you return to the CarPlay screen.</string>
+    <string name="settings_gwm_hud_description">Shows a turn arrow with the distance to the turn, the road name and the arrival time on the head-up display, only during a route. The car keeps projecting its own speed and readouts. Applies when you return to the CarPlay screen.</string>
     <string name="settings_gwm_hud_display">Head-up display</string>
     <string name="settings_gwm_hud_position">HUD strip position</string>
     <string name="settings_gwm_hud_left">Left</string>
     <string name="settings_gwm_hud_centre">Centre</string>
     <string name="settings_gwm_hud_right">Right</string>
+    <string name="settings_gwm_hud_arrival">Arrival</string>
 </resources>

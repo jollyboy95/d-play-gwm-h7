@@ -961,10 +961,11 @@
     <string name="settings_gwm_style">Cuadro estilo Aston</string>
     <string name="settings_gwm_style_description">Dibuja una tarjeta de giro con hora de llegada, tiempo y distancia restantes, además de velocidad, combustible, autonomía, marcha y temperatura exterior sobre el mapa en directo. Usa las lecturas del propio coche y se aplica en la próxima conexión.</string>
     <string name="settings_gwm_hud">Franja del head-up display (experimental)</string>
-    <string name="settings_gwm_hud_description">Muestra la velocidad, una pequeña flecha de giro con la distancia durante una ruta y la autonomía con una barra de combustible en el HUD. Las lecturas propias del coche siguen visibles. Se aplica al volver a la pantalla de CarPlay.</string>
+    <string name="settings_gwm_hud_description">Muestra en el HUD una flecha de giro con la distancia, el nombre de la vía y la hora de llegada, solo durante una ruta. El coche sigue proyectando su velocidad y sus datos. Se aplica al volver a la pantalla de CarPlay.</string>
     <string name="settings_gwm_hud_display">Head-up display</string>
     <string name="settings_gwm_hud_position">Posición de la franja</string>
     <string name="settings_gwm_hud_left">Izquierda</string>
     <string name="settings_gwm_hud_centre">Centro</string>
     <string name="settings_gwm_hud_right">Derecha</string>
+    <string name="settings_gwm_hud_arrival">Llegada</string>
 </resources>

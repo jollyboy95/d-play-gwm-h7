@@ -1010,10 +1010,11 @@
     <string name="settings_gwm_style">لوحة عدادات بأسلوب Aston</string>
     <string name="settings_gwm_style_description">يرسم بطاقة الانعطاف مع وقت الوصول والوقت والمسافة المتبقيين، بالإضافة إلى السرعة والوقود والمدى وناقل الحركة ودرجة الحرارة الخارجية فوق الخريطة المباشرة. يستخدم قراءات السيارة نفسها ويُطبق عند الاتصال التالي.</string>
     <string name="settings_gwm_hud">شريط شاشة العرض الأمامية (تجريبي)</string>
-    <string name="settings_gwm_hud_description">يعرض السرعة وسهم انعطاف صغيرًا مع المسافة أثناء المسار، والمدى مع شريط الوقود على شاشة العرض الأمامية. تبقى قراءات السيارة ظاهرة. يُطبق عند العودة إلى شاشة CarPlay.</string>
+    <string name="settings_gwm_hud_description">يعرض على شاشة العرض الأمامية سهم الانعطاف مع المسافة إليه واسم الطريق ووقت الوصول، أثناء المسار فقط. تواصل السيارة عرض سرعتها وقراءاتها. يُطبق عند العودة إلى شاشة CarPlay.</string>
     <string name="settings_gwm_hud_display">شاشة العرض الأمامية</string>
     <string name="settings_gwm_hud_position">موضع الشريط</string>
     <string name="settings_gwm_hud_left">يسار</string>
     <string name="settings_gwm_hud_centre">الوسط</string>
     <string name="settings_gwm_hud_right">يمين</string>
+    <string name="settings_gwm_hud_arrival">الوصول</string>
 </resources>

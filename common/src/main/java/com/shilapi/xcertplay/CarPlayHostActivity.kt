@@ -466,11 +466,8 @@ class CarPlayHostActivity : ComponentActivity() {
     private var gwmProjectionGeneration = 0
     // Aston-style GWM layer over the live map: turn card with ETA strip, and the vehicle strip.
     private var gwmTurnCard: ClusterTurnCardView? = null
-    // GWM head-up display strip (speed, small turn arrow, range and fuel) on its own display.
+    // GWM head-up display strip (turn arrow, distance, road, arrival) on its own display.
     private var gwmHudOverlay: GwmHudOverlay? = null
-    private val gwmHudVehicleListener: (GwmVehicleData.Snapshot?) -> Unit = { snapshot ->
-        gwmHudOverlay?.view?.let { hud -> hud.post { hud.setSnapshot(snapshot) } }
-    }
     private var gwmHud: GwmClusterHudView? = null
     private val gwmVehicleListener: (GwmVehicleData.Snapshot?) -> Unit = { snapshot ->
         gwmHud?.let { hud -> hud.post { hud.setSnapshot(snapshot) } }
@@ -1482,14 +1479,12 @@ class CarPlayHostActivity : ComponentActivity() {
             .onSuccess {
                 gwmHudOverlay = overlay
                 overlay.view?.setGuidance(clusterTurnGuidance)
-                GwmVehicleData.addListener(this, gwmHudVehicleListener)
                 appendLog("GWM HUD: strip shown on display $target")
             }
             .onFailure { appendLog("GWM HUD: not shown on display $target: ${it.javaClass.simpleName}: ${it.message}") }
     }
 
     private fun stopGwmHud() {
-        GwmVehicleData.removeListener(gwmHudVehicleListener)
         gwmHudOverlay?.hide()
         gwmHudOverlay = null
     }
