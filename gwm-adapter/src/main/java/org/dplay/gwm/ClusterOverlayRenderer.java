@@ -58,6 +58,9 @@ public final class ClusterOverlayRenderer {
 
     private void showView(int logicalDisplayId, boolean testPattern) {
         hide();
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
+            throw new IllegalStateException("Cluster overlays need Android 8.0 (API 26) or newer");
+        }
         DisplayManager dm =
                 (DisplayManager) appContext.getSystemService(Context.DISPLAY_SERVICE);
         Display display = dm.getDisplay(logicalDisplayId);

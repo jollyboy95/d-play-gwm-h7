@@ -32,6 +32,9 @@ public final class GwmLiveProjectionOverlay {
 
     public void show(int logicalDisplayId, SurfaceListener listener) {
         hide();
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
+            throw new IllegalStateException("Cluster overlays need Android 8.0 (API 26) or newer");
+        }
         if (!Settings.canDrawOverlays(appContext)) {
             throw new IllegalStateException("Display-over-other-apps permission is not granted");
         }

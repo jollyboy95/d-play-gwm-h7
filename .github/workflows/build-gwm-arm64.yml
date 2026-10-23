@@ -1,0 +1,112 @@
+name: Build GWM H7 arm64 debug APK
+
+# Source-only arm64-v8a debug build for the Haval/GWM H7 head unit.
+# No accessory identity is provisioned here, so the APK it commits never carries a credential.
+# Each Gradle stage writes its log; on failure the exact compiler/aapt2/Gradle errors are
+# raised as one annotation so they can be read without downloading the raw log.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'DiPlay-GWM-H7-arm64-debug.apk'
+      - 'DiPlay-GWM-H7-arm64-debug.apk.sha256'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gwm-arm64-apk
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject credential files in public source
+        run: python3 scripts/check_public_tree.py
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-37.0 build-tools;36.0.0 ndk;28.2.13676358
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare error reporter
+        run: |
+          cat > "$RUNNER_TEMP/gradle-step.sh" <<'EOF'
+          #!/usr/bin/env bash
+          # Usage: gradle-step.sh <label> <gradle args...>
+          set -uo pipefail
+          label="$1"; shift
+          log="$RUNNER_TEMP/$label.log"
+          ./gradlew "$@" --stacktrace 2>&1 | tee "$log"
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            summary=$(grep -E 'ERROR:|error:|^e: |AAPT: error|What went wrong|^> |Manifest merger failed|uses-sdk|Lint found|FAILED' "$log" \
+              | grep -v '^> Task' | awk '!seen[$0]++' | head -60 | cut -c1-300)
+            [ -n "$summary" ] || summary=$(tail -40 "$log" | cut -c1-300)
+            msg=$(printf '%s' "$summary" | sed -e 's/%/%25/g' | awk 'BEGIN{ORS="%0A"}{print}')
+            echo "::error title=$label failed::$msg"
+            { echo "### $label failed"; echo '```'; printf '%s\n' "$summary"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$status"
+          EOF
+          chmod +x "$RUNNER_TEMP/gradle-step.sh"
+
+      - name: Focused resource compilation and manifest merge
+        run: $RUNNER_TEMP/gradle-step.sh resources :gwm-adapter:compileDebugLibraryResources :common:compileDebugLibraryResources :mobile:processDebugResources -PdiplyAbiFilters=arm64-v8a
+
+      - name: Unit tests
+        run: $RUNNER_TEMP/gradle-step.sh unit-tests :shared:testDebugUnitTest :common:testDebugUnitTest
+
+      - name: Lint
+        run: $RUNNER_TEMP/gradle-step.sh lint :mobile:lintDebug -PdiplyAbiFilters=arm64-v8a
+
+      - name: Assemble arm64-v8a debug APK
+        run: $RUNNER_TEMP/gradle-step.sh assemble :mobile:assembleDebug -PdiplyAbiFilters=arm64-v8a
+
+      - name: Verify, copy and hash-check the APK
+        id: apk
+        run: |
+          set -euo pipefail
+          built=mobile/build/outputs/apk/debug/mobile-debug.apk
+          test -s "$built"
+          abis=$(unzip -l "$built" | grep -o 'lib/[a-z0-9_-]*/' | sort -u | sed 's#lib/##; s#/$##' | tr '\n' ' ')
+          echo "ABIs: $abis"
+          [ "$(echo $abis)" = "arm64-v8a" ] || { echo "::error::expected only arm64-v8a, found [$abis]"; exit 1; }
+          if unzip -l "$built" | grep -q 'assets/offline-mfi/'; then
+            echo "::error::APK unexpectedly contains accessory identity; refusing to commit it"; exit 1
+          fi
+          "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$built" | grep -E "^package:|sdkVersion|targetSdkVersion|native-code"
+          cp "$built" DiPlay-GWM-H7-arm64-debug.apk
+          src=$(sha256sum "$built" | cut -d' ' -f1)
+          dst=$(sha256sum DiPlay-GWM-H7-arm64-debug.apk | cut -d' ' -f1)
+          [ "$src" = "$dst" ] || { echo "::error::hash mismatch $src vs $dst"; exit 1; }
+          echo "$dst  DiPlay-GWM-H7-arm64-debug.apk" > DiPlay-GWM-H7-arm64-debug.apk.sha256
+          size=$(stat -c %s DiPlay-GWM-H7-arm64-debug.apk)
+          echo "::notice title=APK built::sha256 $dst, $size bytes, ABIs $abis"
+          echo "sha=$dst" >> "$GITHUB_OUTPUT"
+
+      - name: Commit the APK to main
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -f DiPlay-GWM-H7-arm64-debug.apk DiPlay-GWM-H7-arm64-debug.apk.sha256
+          if git diff --cached --quiet; then echo "APK unchanged"; exit 0; fi
+          git commit -m "Add GWM H7 arm64 debug APK (${GITHUB_SHA::7}) [skip ci]" \
+            -m "sha256 ${{ steps.apk.outputs.sha }}, built from ${GITHUB_SHA}"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1

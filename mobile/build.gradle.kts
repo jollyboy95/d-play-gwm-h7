@@ -7,6 +7,10 @@ plugins {
 val localAuthenticationAssets = providers.environmentVariable("DIPLAY_AUTH_ASSETS_DIR")
     .orNull?.let { file(it).canonicalFile }
 
+// Optional ABI selection, e.g. -PdiplyAbiFilters=arm64-v8a. Unset keeps every ABI (universal APK).
+val selectedAbiFilters = providers.gradleProperty("diplyAbiFilters").orNull
+    ?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+
 android {
     namespace = "com.shilapi.xcertplay"
     compileSdk {
@@ -19,6 +23,9 @@ android {
         targetSdk = 37
         versionCode = 40
         versionName = "0.2.21"
+        if (selectedAbiFilters.isNotEmpty()) {
+            ndk { abiFilters.addAll(selectedAbiFilters) }
+        }
 
     }
 
