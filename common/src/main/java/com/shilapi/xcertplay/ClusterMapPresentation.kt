@@ -14,6 +14,9 @@ import android.view.WindowManager
 import android.graphics.Point
 import android.hardware.display.DisplayManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.view.Display
 import android.view.Gravity
@@ -22,17 +25,19 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
 import android.view.TextureView
+import android.content.res.ColorStateList
 import android.widget.FrameLayout
-import android.widget.TextView
+import android.widget.ProgressBar
 import com.shilapi.xcertplay.airplay.CarPlayClusterDisplay
 import com.shilapi.xcertplay.host.R
 import com.shilapi.xcertplay.hud.ClusterTurnGuidance
+import org.dplay.gwm.GwmDisplayAdapter
 
 /**
  * Shows CarPlay's instrument-cluster stream on a BYD cluster projection display.
  *
  * BYD exposes the cluster's projection area as public presentation displays owned by
- * com.byd.containerservice; the stock map (com.byd.launchermap) draws there the same way. The
+ * com.byd.containerservice (DiLink 5) or com.xdja.containerservice (DiLink 4). The
  * cluster only shows this display while its projection mode is on, which DiPlay cannot switch.
  */
 internal class ClusterMapPresentation(
@@ -41,20 +46,39 @@ internal class ClusterMapPresentation(
     private val theme: DiLink51ClusterLayout.Theme = DiLink51ClusterLayout.theme(context),
     private val onSurface: (Surface?) -> Unit,
 ) : Presentation(context, display) {
-    private var waitingLabel: TextView? = null
+    // The placeholder until the map arrives: a small spinner.
+    private var waitingLabel: View? = null
     private var turnCardView: ClusterTurnCardView? = null
+    private var videoView: View? = null
+    private var streamActive = false
     var outputSurface: Surface? = null
         private set
+    var mapVisible = true
+        private set
+
+    private val projectionHandler = Handler(Looper.getMainLooper())
+    private val projectionWatchdog = ClusterProjectionWatchdog()
+    private val projectionTick = object : Runnable {
+        override fun run() {
+            if (projectionWatchdog.onStatus(GeelyClusterProjection.status())) {
+                Log.i(TAG, "cluster projection was taken away; asking for it again")
+                if (GeelyClusterProjection.set(true, context)) projectionWatchdog.assertedProjection()
+            }
+            projectionHandler.postDelayed(this, PROJECTION_TICK_MILLIS)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val size = sizeOf(display)
         val adaptive = DiLink51ClusterLayout.supported()
         val plan = if (adaptive) DiLink51ClusterLayout.plan(size.x, size.y, theme) else null
-        val dark = DiLink51ClusterLayout.dark(context, theme)
+        // The adaptive DiLink 5.1 layout follows the cluster's own contrast; elsewhere the cluster follows DiPlay's theme.
+        val dark = if (plan != null) DiLink51ClusterLayout.dark(context, theme) else context.resolveAppNightNow()
         val backdrop = if (dark) Color.rgb(15, 22, 30) else Color.rgb(207, 218, 229)
+        val placeholder = if (dark) Color.BLACK else Color.rgb(233, 238, 246)
         val root = FrameLayout(context).apply {
-            setBackgroundColor(if (plan == null) Color.BLACK else if (plan.fullMap) backdrop else Color.TRANSPARENT)
+            setBackgroundColor(if (plan == null) placeholder else if (plan.fullMap) backdrop else Color.TRANSPARENT)
         }
         if (plan != null) {
             window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
@@ -89,6 +113,7 @@ internal class ClusterMapPresentation(
                 }
             }
             root.addView(textureView, videoParams)
+            videoView = textureView
             if (plan.fullMap) root.addView(InstrumentContrastView(context, plan, backdrop), FrameLayout.LayoutParams(-1, -1))
             Log.i(TAG, "layout=$theme viewport=$plan source=${plan.sourceLeft},${plan.sourceTop} dark=$dark")
         } else {
@@ -97,6 +122,7 @@ internal class ClusterMapPresentation(
             surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
                 override fun surfaceCreated(holder: SurfaceHolder) {
                     Log.i(TAG, "cluster surface created")
+                    outputSurface = holder.surface
                     onSurface(holder.surface)
                 }
 
@@ -107,37 +133,108 @@ internal class ClusterMapPresentation(
                 override fun surfaceDestroyed(holder: SurfaceHolder) {
                     Log.i(TAG, "cluster surface destroyed")
                     onSurface(null)
+                    // SurfaceHolder owns this surface; do not release it ourselves.
+                    outputSurface = null
                 }
             })
             root.addView(surfaceView, videoParams)
+            videoView = surfaceView
         }
-        waitingLabel = TextView(context).apply {
-            text = context.getString(R.string.cluster_waiting_for_map)
-            setTextColor(if (plan != null && !dark) Color.DKGRAY else Color.WHITE)
-            textSize = 26f
-            gravity = Gravity.CENTER
+        val waitingColor = if (dark) Color.WHITE else Color.DKGRAY
+        val density = context.resources.displayMetrics.density
+        waitingLabel = FrameLayout(context).apply {
+            if (plan == null) setBackgroundColor(placeholder)
+            addView(ProgressBar(context).apply {
+                isIndeterminate = true
+                indeterminateTintList = ColorStateList.valueOf(waitingColor)
+                contentDescription = context.getString(R.string.cluster_waiting_for_map)
+            }, FrameLayout.LayoutParams((40 * density).toInt(), (40 * density).toInt(), Gravity.CENTER))
         }
         root.addView(waitingLabel, FrameLayout.LayoutParams(videoParams))
         turnCardView = ClusterTurnCardView(context).apply { visibility = View.GONE }
         root.addView(turnCardView, FrameLayout.LayoutParams(-1, -1))
+        root.addView(ClusterMusicView(context), FrameLayout.LayoutParams(videoParams))
+        root.addView(ClusterSpeedometerView(context), FrameLayout.LayoutParams(-1, -1))
+        // Start with the placeholder visible; SurfaceView would otherwise cover the light
+        // backdrop with an empty black surface before the first stream notification.
+        // SurfaceView ignores fractional alpha before API 34. Keep its decoder surface
+        // visible and fade an opaque ordinary View over it instead.
+        if (videoView !is SurfaceView) videoView?.alpha = if (streamActive) 1f else 0f
+        waitingLabel?.apply {
+            alpha = if (streamActive) 0f else 1f
+            visibility = if (streamActive) View.GONE else View.VISIBLE
+        }
         setContentView(root)
     }
 
-    /** Hides the placeholder once the phone streams the cluster screen. */
+    override fun onStart() {
+        super.onStart()
+        // On the Geely head unit the cluster keeps its factory layer over Android's display 2
+        // until the DIM service is asked to project; the stock map does the same.
+        if (!GeelyClusterDisplay.supported()) return
+        projectionWatchdog.reset()
+        if (GeelyClusterProjection.set(true, context)) projectionWatchdog.assertedProjection()
+        // That switch belongs to the head unit, not to DiPlay: waking the stock map moves the
+        // projection there and its session end turns the switch off, with no display callback and
+        // no onStop here to notice. Watch the state for as long as this presentation is up.
+        projectionHandler.removeCallbacks(projectionTick)
+        projectionHandler.postDelayed(projectionTick, PROJECTION_TICK_MILLIS)
+    }
+
+    override fun onStop() {
+        if (GeelyClusterDisplay.supported()) {
+            projectionHandler.removeCallbacks(projectionTick)
+            // Hand the projection back only while DiPlay still holds it. The switch is head-unit-wide
+            // and the stock map drives it too, so when the map owns the cluster (the wheel key woke
+            // it) switching it off here would take the map off the cluster as well. Read it back
+            // first: the last readings decide, and this final one is the freshest evidence.
+            val handBack = projectionWatchdog.shouldHandBack(GeelyClusterProjection.status())
+            if (handBack) GeelyClusterProjection.set(false, context)
+            projectionWatchdog.reset()
+        }
+        super.onStop()
+    }
+
+    /**
+     * Cross-fades the waiting placeholder over the live map. TextureView can also fade the
+     * video; legacy SurfaceView stays visible under the placeholder to preserve its surface.
+     */
     fun setStreamActive(active: Boolean) {
-        waitingLabel?.visibility = if (active) View.GONE else View.VISIBLE
+        if (streamActive == active) return
+        // Update before cancelling: a cancelled fade must not hide the newly restored label.
+        streamActive = active
+        val video = videoView
+        val label = waitingLabel
+        video?.animate()?.cancel()
+        label?.animate()?.cancel()
+        if (video == null || label == null) return
+        label.visibility = View.VISIBLE
+        // Animate from the current opacity so a stream reversal does not jump or restart.
+        if (video !is SurfaceView) video.animate().alpha(if (active) 1f else 0f).setDuration(300).start()
+        label.animate().alpha(if (active) 0f else 1f).setDuration(300).withEndAction {
+            if (streamActive == active) label.visibility = if (active) View.GONE else View.VISIBLE
+        }.start()
     }
 
     /** Window alpha hides the pixels without destroying the TextureView/decoder surface. */
     fun setMapVisible(visible: Boolean) {
+        mapVisible = visible
         window?.let { window ->
             val alpha = if (visible) 1f else 0f
             if (window.attributes.alpha != alpha) window.attributes = window.attributes.apply { this.alpha = alpha }
         }
     }
 
-    fun setTurnCardOverlay(xPercent: Int, yPercent: Int, size: CarPlayClusterDisplay.OverlaySize) {
-        turnCardView?.setLayout(xPercent, yPercent, size)
+    fun setTurnCardOverlay(xPercent: Int, yPercent: Int, sizePercent: Int) {
+        turnCardView?.setLayout(xPercent, yPercent, sizePercent)
+    }
+
+    fun setTurnCardNightMode(night: Boolean) {
+        turnCardView?.setNightMode(night)
+    }
+
+    fun setTurnCardOpacity(percent: Int) {
+        turnCardView?.setOpacity(percent)
     }
 
     fun setTurnCardGuidance(guidance: ClusterTurnGuidance?) {
@@ -146,14 +243,45 @@ internal class ClusterMapPresentation(
 
     companion object {
         const val TAG = "DiPlay-Cluster"
+        @Volatile private var lastPresentationResult = "No presentation launch attempted"
 
-        /** A verified 5.1 profile chooses its layer explicitly; other firmware keeps PR #5 behavior. */
+        fun recordPresentationResult(result: String) {
+            lastPresentationResult = result
+        }
+
+        /**
+         * How often the Geely projection state is read. One binder transaction, and the watchdog needs
+         * two off readings anyway, so the cluster is back within ~4 s of the stock map releasing it.
+         */
+        const val PROJECTION_TICK_MILLIS = 2_000L
+
+        /** Resolve the H7's observed cluster ID from current enumeration before OEM-specific selection. */
         fun findDisplay(context: Context, theme: DiLink51ClusterLayout.Theme = DiLink51ClusterLayout.theme(context)): Display? {
-            val displays = context.getSystemService(DisplayManager::class.java)
-                ?.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION) ?: return null
+            val manager = context.getSystemService(DisplayManager::class.java) ?: return null
+            val allDisplays = manager.displays
+            val gwmDisplayId = AirPlayPersistence.loadGwmClusterDisplayId(context)
+                ?: GwmDisplayAdapter.defaultClusterDisplayId()
+            if (gwmDisplayId != Display.INVALID_DISPLAY) {
+                return allDisplays.firstOrNull { it.displayId == gwmDisplayId && it.isValid }
+            }
+            val displays = manager.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
             val name = DiLink51ClusterLayout.displayName(
                 displays.map { it.name }, android.os.Build.FINGERPRINT, theme,
-            ) ?: return null
+            )
+            if (name == null) {
+                // Never replace a missing 5.1 side layer with a full-screen display.
+                if (DiLink51ClusterLayout.supported()) return null
+                if (GeelyClusterDisplay.supported()) {
+                    return displays.firstOrNull { display ->
+                        val size = sizeOf(display)
+                        GeelyClusterDisplay.matches(display, size.x, size.y)
+                    }
+                }
+                return displays.firstOrNull { display ->
+                    val size = sizeOf(display)
+                    DiLink4ClusterDisplay.accepts(display.name, size.x, size.y)
+                }
+            }
             return displays.firstOrNull { it.name == name }?.takeIf {
                 if (!DiLink51ClusterLayout.supported()) true else {
                     val size = sizeOf(it)
@@ -164,7 +292,25 @@ internal class ClusterMapPresentation(
 
         fun describeDisplays(context: Context): String =
             context.getSystemService(DisplayManager::class.java)?.displays
-                ?.joinToString { "${it.displayId}:${it.name}" }.orEmpty()
+                ?.joinToString {
+                    val size = sizeOf(it)
+                    "${it.displayId}:${it.name} ${size.x}x${size.y} state=${it.state} " +
+                        "flags=0x${it.flags.toString(16)} presentation=${it.flags and Display.FLAG_PRESENTATION != 0} valid=${it.isValid}"
+                }.orEmpty()
+
+        fun diagnosticReport(context: Context): String = buildString {
+            appendLine("clusterEnabled=${AirPlayPersistence.loadClusterMapEnabled(context)}")
+            appendLine("selectedDisplayId=${AirPlayPersistence.loadGwmClusterDisplayId(context) ?: GwmDisplayAdapter.defaultClusterDisplayId()}")
+            appendLine("navigationReceiverAvailable=${com.shilapi.xcertplay.hud.BydOutputSettings.navigationAvailable(context)}")
+            appendLine("allDisplays=${describeDisplays(context)}")
+            appendLine("overlayPermission=${Settings.canDrawOverlays(context)} (not required for Presentation)")
+            val presentations = context.getSystemService(DisplayManager::class.java)
+                ?.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION).orEmpty()
+            appendLine("presentationDisplayIds=${presentations.joinToString { it.displayId.toString() }}")
+            val selected = findDisplay(context)
+            appendLine("selectedCluster=${selected?.let { "${it.displayId}:${it.name}" } ?: "none"}")
+            append("lastPresentationResult=$lastPresentationResult")
+        }
 
         fun sizeOf(display: Display): Point = Point().also {
             @Suppress("DEPRECATION")

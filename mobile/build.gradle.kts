@@ -15,25 +15,11 @@ android {
 
     defaultConfig {
         applicationId = "com.shihab.diplay"
-        minSdk = 26
+        minSdk = 24
         targetSdk = 37
-        versionCode = 30
-        versionName = "0.2.11"
+        versionCode = 40
+        versionName = "0.2.21"
 
-        ndk {
-            // The application module is what actually decides which ABIs land in the APK. The
-            // filter also exists in :shared, but a library's abiFilters only narrow the library's
-            // own .so files: without this block the app is packaged as a universal APK containing
-            // every ABI, which is why this mirrors the :shared setting and reads the same
-            // -PdiplyAbiFilters property.
-            //
-            // In the Kotlin DSL abiFilters is a MutableSet property rather than the varargs method
-            // the Groovy DSL exposes, so it is populated in place instead of called.
-            val abiOverride = providers.gradleProperty("diplyAbiFilters")
-                .getOrElse("arm64-v8a,armeabi-v7a,x86_64")
-            abiFilters.clear()
-            abiFilters.addAll(abiOverride.split(",").map { it.trim() }.filter { it.isNotEmpty() })
-        }
     }
 
 

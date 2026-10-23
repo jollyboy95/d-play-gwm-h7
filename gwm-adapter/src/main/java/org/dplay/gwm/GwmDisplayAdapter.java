@@ -12,6 +12,7 @@ package org.dplay.gwm;
 import android.content.Context;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
+import android.os.Build;
 import android.view.Display;
 
 import java.util.Locale;
@@ -27,22 +28,40 @@ import java.util.Locale;
 public final class GwmDisplayAdapter {
 
     private final DisplayManager dm;
+    private final Context context;
 
     public GwmDisplayAdapter(Context context) {
-        this.dm = (DisplayManager) context.getApplicationContext()
-                .getSystemService(Context.DISPLAY_SERVICE);
+        this.context = context.getApplicationContext();
+        this.dm = (DisplayManager) this.context.getSystemService(Context.DISPLAY_SERVICE);
+    }
+
+    public static boolean isGwmTargetDevice() {
+        String identity = (Build.MANUFACTURER + " " + Build.BRAND + " " + Build.MODEL + " "
+                + Build.DEVICE + " " + Build.PRODUCT + " " + Build.DISPLAY + " " + Build.FINGERPRINT)
+                .toLowerCase(Locale.ROOT);
+        return identity.contains("gwm") || identity.contains("haval")
+                || identity.contains("great wall") || identity.contains("greatwall")
+                || identity.contains("b11");
+    }
+
+    public static int defaultClusterDisplayId() {
+        return isGwmTargetDevice() ? GwmAdapterConfig.H7_CLUSTER_DISPLAY_ID : Display.INVALID_DISPLAY;
     }
 
     /** Human-readable list of every display the device reports. Log this on the car. */
     public String dump() {
         StringBuilder sb = new StringBuilder("GWM display dump:\n");
+        if (dm == null) return sb.append("  DisplayManager unavailable\n").toString();
+        sb.append("  overlayPermission=")
+            .append(android.provider.Settings.canDrawOverlays(context))
+            .append(" (required for live GWM overlay)\n");
         for (Display d : dm.getDisplays()) {
             Point size = new Point();
             d.getRealSize(size);
             sb.append(String.format(Locale.US,
-                    "  id=%d  name=\"%s\"  size=%dx%d  state=%d  flags=0x%x%n",
+                    "  id=%d  name=\"%s\"  size=%dx%d  state=%d  flags=0x%x  presentation=%s  valid=%s%n",
                     d.getDisplayId(), d.getName(), size.x, size.y, d.getState(),
-                    d.getFlags()));
+                    d.getFlags(), (d.getFlags() & Display.FLAG_PRESENTATION) != 0, d.isValid()));
         }
         return sb.toString();
     }
@@ -87,6 +106,10 @@ public final class GwmDisplayAdapter {
     }
 
     public Display getDisplay(int logicalId) {
-        return dm.getDisplay(logicalId);
+        return dm == null ? null : dm.getDisplay(logicalId);
+    }
+
+    public Display[] getDisplays() {
+        return dm == null ? new Display[0] : dm.getDisplays();
     }
 }

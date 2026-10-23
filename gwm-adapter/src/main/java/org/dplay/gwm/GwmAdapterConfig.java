@@ -47,15 +47,13 @@ public final class GwmAdapterConfig {
         this.steeringDebounceMs = steeringDebounceMs;
     }
 
-    /**
-     * Defaults for the 2026 Haval H7 (B11, AU). UNVERIFIED — enumerate on the car
-     * and update these once the real IDs/sizes are logged.
-     */
+        /** The observed H7 cluster target; the adapter still checks that it is currently present. */
+        public static final int H7_CLUSTER_DISPLAY_ID = 2;
+
     public static final GwmAdapterConfig H7_DEFAULTS = new GwmAdapterConfig(
             "Haval H7 Vanta (B11, AU)",
             new DisplayHint[] {
-                    new DisplayHint(2, 1920, 720),   // gauge/cluster layer (guess)
-                    new DisplayHint(-1, 1920, 720),  // fallback: any 1920x720 non-primary
+                new DisplayHint(H7_CLUSTER_DISPLAY_ID, 0, 0),
             },
             "sys.other.keyevent_notify",
             120L);

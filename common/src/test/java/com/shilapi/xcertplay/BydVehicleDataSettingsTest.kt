@@ -23,7 +23,6 @@ import com.shilapi.xcertplay.hud.BydVehicleProbeOutcome
 import com.shilapi.xcertplay.transport.VehicleGear
 import com.shilapi.xcertplay.orchestration.WirelessHotspotMode
 import com.shilapi.xcertplay.transport.VehicleStatusProvider
-import com.shilapi.xcertplay.vehicle.VehiclePlatforms
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -57,9 +56,6 @@ class BydVehicleDataSettingsTest {
         context.getSharedPreferences("diplay_byd_outputs", 0).edit().clear().commit()
         context.getSharedPreferences("diplay_byd_vehicle_fields", 0).edit().clear().commit()
         BydVehicleFieldStore.clearMemoryForTests()
-        // Each test here simulates a different head unit, and the platform is resolved once per
-        // process, so a cached answer from an earlier test would decide this one.
-        VehiclePlatforms.clearCacheForTests()
     }
 
     @After fun tearDown() {
@@ -88,6 +84,30 @@ class BydVehicleDataSettingsTest {
         assertTrue(switches().any { it.contentDescription == activity.getString(R.string.car_battery_for_the_iphone) })
         assertTrue(switches().any { it.contentDescription == activity.getString(R.string.wheel_speed_for_tunnels) })
         assertTrue(switches().any { it.contentDescription == activity.getString(R.string.video_while_parked) })
+    }
+
+    @Test fun aTappedAdbCheckShowsItsResult() {
+        // #724: on a head unit without network ADB only the status line changed, so the button seemed dead.
+        openSettings()
+        texts().single { it.text == activity.getString(R.string.advanced_vehicle_data) }.performClick()
+        android.provider.Settings.Global.putInt(activity.contentResolver, android.provider.Settings.Global.ADB_ENABLED, 0)
+        backend.checkResult = BydAdbAccess.Status(BydAdbAccess.State.ADB_OFF)
+        texts().single { it.text == activity.getString(R.string.check_adb_access) }.performClick()
+        backend.run("diplay-adb-state")
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        assertEquals(activity.getString(R.string.adb_off), org.robolectric.shadows.ShadowToast.getTextOfLatestToast())
+    }
+
+    @Test fun anAdbCheckWithUsbDebuggingOnSaysTheNetworkDoesNotAnswer() {
+        // #1002: on DiLink UI7.0 the developer-options switch stays on after a restart while nothing listens on 5555.
+        openSettings()
+        texts().single { it.text == activity.getString(R.string.advanced_vehicle_data) }.performClick()
+        android.provider.Settings.Global.putInt(activity.contentResolver, android.provider.Settings.Global.ADB_ENABLED, 1)
+        backend.checkResult = BydAdbAccess.Status(BydAdbAccess.State.ADB_OFF)
+        texts().single { it.text == activity.getString(R.string.check_adb_access) }.performClick()
+        backend.run("diplay-adb-state")
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        assertEquals(activity.getString(R.string.adb_network_not_answering), org.robolectric.shadows.ShadowToast.getTextOfLatestToast())
     }
 
     @Test fun successfulLiveProbeRevealsOnlySupportedSettings() {
@@ -195,11 +215,13 @@ class BydVehicleDataSettingsTest {
     @Test fun clusterSongSwitchStaysInTheBydNavigationSectionOnly() {
         shadowOf(context.packageManager).installPackage(PackageInfo().apply { packageName = "com.byd.amapservice" })
         openSettings()
+        openCategory(R.string.settings_navigation)
 
         assertTrue(texts().any { it.text == activity.getString(R.string.byd_navigation) })
         assertEquals(1, switches().count { it.contentDescription == activity.getString(R.string.cluster_song) })
+        openCategory(R.string.settings_advanced)
         texts().single { it.text == activity.getString(R.string.advanced_vehicle_data) }.performClick()
-        assertEquals(1, switches().count { it.contentDescription == activity.getString(R.string.cluster_song) })
+        assertEquals(0, switches().count { it.contentDescription == activity.getString(R.string.cluster_song) })
     }
 
     @Test fun withoutBydNavigationTheClusterSongSwitchIsUnderAdvancedVehicleData() {
@@ -211,6 +233,21 @@ class BydVehicleDataSettingsTest {
         vehicleSwitch(R.string.cluster_song).performClick()
 
         assertTrue(BydOutputSettings.clusterSong(context))
+    }
+
+    @Test fun gateSwitchShowsOnlyWhenClusterSongIsOn() {
+        shadowOf(context.packageManager).installPackage(PackageInfo().apply { packageName = "com.byd.amapservice" })
+        openSettings()
+        openCategory(R.string.settings_navigation)
+
+        assertEquals(1, switches().count { it.contentDescription == activity.getString(R.string.cluster_song) })
+        assertEquals(0, switches().count { it.contentDescription == activity.getString(R.string.cluster_song_gate) })
+
+        vehicleSwitch(R.string.cluster_song).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(1, switches().count { it.contentDescription == activity.getString(R.string.cluster_song_gate) })
+        assertFalse(BydOutputSettings.clusterSongGate(context)) // default false
     }
 
     @Test fun scheduledValidationCannotLeaveAUserProbeStuck() {
@@ -695,7 +732,7 @@ class BydVehicleDataSettingsTest {
         val second = layoutRoot()
         assertEquals(savedY, second.scrollY)
 
-        ReflectionHelpers.setField(activity, "page", "about")
+        ReflectionHelpers.setField(activity, "settingsCategory", SettingsCategory.ABOUT)
         ReflectionHelpers.callInstanceMethod<Unit>(activity, "render")
         val third = layoutRoot()
         assertEquals(0, third.scrollY)
@@ -723,6 +760,17 @@ class BydVehicleDataSettingsTest {
             DiPlayActivity::class.java,
             Intent(context, DiPlayActivity::class.java).putExtra("page", "settings"),
         ).setup()
+        openCategory(R.string.settings_advanced)
+    }
+
+    private fun openCategory(title: Int) {
+        val description = activity.getString(R.string.settings_open_category, activity.getString(title))
+        var target = descendants(activity.window.decorView).firstOrNull { it.contentDescription == description }
+        if (target == null) {
+            activity.onBackPressedDispatcher.onBackPressed()
+            target = descendants(activity.window.decorView).first { it.contentDescription == description }
+        }
+        target.performClick()
     }
 
     private fun switches(): Sequence<Switch> = descendants(activity.window.decorView).filterIsInstance<Switch>()
