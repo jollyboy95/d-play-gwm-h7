@@ -121,7 +121,6 @@ import com.shilapi.xcertplay.transport.BluetoothRadioCheck
 import com.shilapi.xcertplay.transport.IphoneUsbMatcher
 import com.shilapi.xcertplay.transport.UsbDeviceId
 import com.shilapi.xcertplay.transport.VehicleSpeedLocationProvider
-import org.dplay.gwm.GwmDisplayAdapter
 import org.dplay.gwm.GwmLiveProjectionOverlay
 import java.io.File
 import java.text.SimpleDateFormat
@@ -1350,7 +1349,7 @@ class CarPlayHostActivity : ComponentActivity() {
         clusterLaunchGate.reset()
         ClusterActivityOutput.stop(this)
         val theme = effectiveClusterTheme()
-        if (GwmDisplayAdapter.isGwmTargetDevice()) {
+        if (GwmMode.active(this)) {
             if (!AirPlayPersistence.loadGwmClusterOverlayEnabled(this) ||
                 SCREEN_TYPE_ALT !in activeScreenStreamTypes) {
                 stopGwmProjectionOverlay()
@@ -1444,7 +1443,7 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     private fun refreshGwmProjectionRoute() {
-        if (!GwmDisplayAdapter.isGwmTargetDevice()) return
+        if (!GwmMode.active(this)) return
         if (!AirPlayPersistence.loadClusterMapEnabled(this) ||
             !AirPlayPersistence.loadGwmClusterOverlayEnabled(this) ||
             SCREEN_TYPE_ALT !in activeScreenStreamTypes) {
@@ -6693,7 +6692,7 @@ class CarPlayHostActivity : ComponentActivity() {
                 clusterPresentation?.setStreamActive(active)
                 ClusterActivityOutput.setStreamActive(active)
                 MapMirrors.setStreamActive(active)
-                if (GwmDisplayAdapter.isGwmTargetDevice()) {
+                if (GwmMode.active(this@CarPlayHostActivity)) {
                     if (active && AirPlayPersistence.loadGwmClusterOverlayEnabled(this@CarPlayHostActivity)) {
                         ensureClusterPresentation()
                     } else if (!active) {

@@ -959,4 +959,15 @@
     <string name="settings_auth_import_need_both">Виберіть identity.pk8 і certificate.p7b одночасно.</string>
     <string name="settings_auth_import_not_found">У цьому файлі немає ресурсів автентифікації CarPlay.</string>
     <string name="settings_auth_import_no_picker">На цьому пристрої немає засобу вибору файлів.</string>
+    <string name="settings_gwm_card_title">Панель приладів GWM H7 (експериментально)</string>
+    <string name="settings_gwm_detected">Цей пристрій розпізнано як GWM/Haval.</string>
+    <string name="settings_gwm_force">Вважати цей пристрій GWM/Haval</string>
+    <string name="settings_gwm_force_description">Увімкніть, якщо параметри GWM не з’являються на вашому H7. Вмикає лише маршрут на панель приладів GWM і застосовується під час наступного підключення.</string>
+    <string name="settings_gwm_no_displays">Android зараз не повідомляє про жоден екран, окрім центрального. Спробуйте ще раз з увімкненим автомобілем.</string>
+    <string name="settings_gwm_display_missing">%1$d · зараз не виявлено</string>
+    <string name="settings_gwm_overlay_granted">Показ поверх інших програм: дозволено</string>
+    <string name="settings_gwm_overlay_missing">Показ поверх інших програм: не дозволено. Він потрібен для потоку на панель приладів.</string>
+    <string name="settings_gwm_overlay_allow">Дозволити показ поверх інших програм</string>
+    <string name="settings_gwm_adb_route_conflict">У картці карти на панелі приладів увімкнено маршрутизацію через ADB. Вимкніть її там, інакше маршрут GWM буде пропущено.</string>
+    <string name="settings_gwm_test_failed">Не вдалося відкрити тест на дисплеї %1$d: %2$s</string>
 </resources>

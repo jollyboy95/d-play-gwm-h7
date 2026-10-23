@@ -1050,4 +1050,15 @@
     <string name="settings_auth_import_need_both">Select both identity.pk8 and certificate.p7b at the same time.</string>
     <string name="settings_auth_import_not_found">This file has no CarPlay authentication resources.</string>
     <string name="settings_auth_import_no_picker">No file picker is available on this head unit.</string>
+    <string name="settings_gwm_card_title">GWM H7 cluster (experimental)</string>
+    <string name="settings_gwm_detected">This head unit was recognised as GWM/Haval.</string>
+    <string name="settings_gwm_force">Treat this head unit as GWM/Haval</string>
+    <string name="settings_gwm_force_description">Turn on when the GWM options stay hidden on your H7. It only enables the GWM cluster route and applies at the next connection.</string>
+    <string name="settings_gwm_no_displays">Android reports no screen other than the centre display right now. Try again with the car on.</string>
+    <string name="settings_gwm_display_missing">%1$d · not reported right now</string>
+    <string name="settings_gwm_overlay_granted">Display over other apps: allowed</string>
+    <string name="settings_gwm_overlay_missing">Display over other apps: not allowed. The live cluster stream needs it.</string>
+    <string name="settings_gwm_overlay_allow">Allow display over other apps</string>
+    <string name="settings_gwm_adb_route_conflict">ADB cluster routing is on in the dashboard map card. Turn it off there, or the GWM route is skipped.</string>
+    <string name="settings_gwm_test_failed">Could not open the test on display %1$d: %2$s</string>
 </resources>

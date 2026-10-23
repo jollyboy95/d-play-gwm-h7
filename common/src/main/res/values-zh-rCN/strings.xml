@@ -1007,4 +1007,15 @@
     <string name="settings_auth_import_need_both">请同时选择 identity.pk8 和 certificate.p7b。</string>
     <string name="settings_auth_import_not_found">此文件不包含 CarPlay 认证资源。</string>
     <string name="settings_auth_import_no_picker">此主机上没有可用的文件选择器。</string>
+    <string name="settings_gwm_card_title">GWM H7 仪表（实验性）</string>
+    <string name="settings_gwm_detected">已将此主机识别为 GWM/Haval。</string>
+    <string name="settings_gwm_force">将此主机视为 GWM/Haval</string>
+    <string name="settings_gwm_force_description">如果 H7 上一直不显示 GWM 选项，请打开此项。仅启用 GWM 仪表路由，下次连接时生效。</string>
+    <string name="settings_gwm_no_displays">Android 目前未报告中控屏以外的屏幕。请在车辆通电时重试。</string>
+    <string name="settings_gwm_display_missing">%1$d · 目前未检测到</string>
+    <string name="settings_gwm_overlay_granted">显示在其他应用上层：已允许</string>
+    <string name="settings_gwm_overlay_missing">显示在其他应用上层：未允许。实时仪表画面需要此权限。</string>
+    <string name="settings_gwm_overlay_allow">允许显示在其他应用上层</string>
+    <string name="settings_gwm_adb_route_conflict">仪表地图卡片中已开启 ADB 仪表路由。请在那里关闭，否则会跳过 GWM 路由。</string>
+    <string name="settings_gwm_test_failed">无法在屏幕 %1$d 上打开测试：%2$s</string>
 </resources>

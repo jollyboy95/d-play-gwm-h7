@@ -31,7 +31,6 @@ import android.widget.ProgressBar
 import com.shilapi.xcertplay.airplay.CarPlayClusterDisplay
 import com.shilapi.xcertplay.host.R
 import com.shilapi.xcertplay.hud.ClusterTurnGuidance
-import org.dplay.gwm.GwmDisplayAdapter
 
 /**
  * Shows CarPlay's instrument-cluster stream on a BYD cluster projection display.
@@ -259,8 +258,7 @@ internal class ClusterMapPresentation(
         fun findDisplay(context: Context, theme: DiLink51ClusterLayout.Theme = DiLink51ClusterLayout.theme(context)): Display? {
             val manager = context.getSystemService(DisplayManager::class.java) ?: return null
             val allDisplays = manager.displays
-            val gwmDisplayId = AirPlayPersistence.loadGwmClusterDisplayId(context)
-                ?: GwmDisplayAdapter.defaultClusterDisplayId()
+            val gwmDisplayId = GwmMode.selectedClusterDisplayId(context)
             if (gwmDisplayId != Display.INVALID_DISPLAY) {
                 return allDisplays.firstOrNull { it.displayId == gwmDisplayId && it.isValid }
             }
@@ -300,7 +298,8 @@ internal class ClusterMapPresentation(
 
         fun diagnosticReport(context: Context): String = buildString {
             appendLine("clusterEnabled=${AirPlayPersistence.loadClusterMapEnabled(context)}")
-            appendLine("selectedDisplayId=${AirPlayPersistence.loadGwmClusterDisplayId(context) ?: GwmDisplayAdapter.defaultClusterDisplayId()}")
+            appendLine("gwmMode=detected:${GwmMode.detected()} forced:${AirPlayPersistence.loadGwmForced(context)} gwmOverlay=${AirPlayPersistence.loadGwmClusterOverlayEnabled(context)}")
+            appendLine("selectedDisplayId=${GwmMode.selectedClusterDisplayId(context)}")
             appendLine("navigationReceiverAvailable=${com.shilapi.xcertplay.hud.BydOutputSettings.navigationAvailable(context)}")
             appendLine("allDisplays=${describeDisplays(context)}")
             appendLine("overlayPermission=${Settings.canDrawOverlays(context)} (not required for Presentation)")

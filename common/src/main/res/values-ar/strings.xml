@@ -996,4 +996,15 @@
     <string name="settings_auth_import_need_both">اختر identity.pk8 و certificate.p7b معًا.</string>
     <string name="settings_auth_import_not_found">لا يحتوي هذا الملف على موارد مصادقة CarPlay.</string>
     <string name="settings_auth_import_no_picker">لا يتوفر منتقي ملفات على هذه الوحدة.</string>
+    <string name="settings_gwm_card_title">لوحة عدادات GWM H7 (تجريبي)</string>
+    <string name="settings_gwm_detected">تم التعرف على هذه الوحدة كـ GWM/Haval.</string>
+    <string name="settings_gwm_force">التعامل مع هذه الوحدة كـ GWM/Haval</string>
+    <string name="settings_gwm_force_description">فعّله عندما تبقى خيارات GWM مخفية في سيارتك H7. يفعّل مسار لوحة عدادات GWM فقط ويُطبق عند الاتصال التالي.</string>
+    <string name="settings_gwm_no_displays">لا يُبلغ Android عن أي شاشة غير الشاشة الوسطى حاليًا. حاول مرة أخرى والسيارة تعمل.</string>
+    <string name="settings_gwm_display_missing">%1$d · غير مُبلغ عنها حاليًا</string>
+    <string name="settings_gwm_overlay_granted">العرض فوق التطبيقات الأخرى: مسموح</string>
+    <string name="settings_gwm_overlay_missing">العرض فوق التطبيقات الأخرى: غير مسموح. يحتاجه البث المباشر للوحة العدادات.</string>
+    <string name="settings_gwm_overlay_allow">السماح بالعرض فوق التطبيقات الأخرى</string>
+    <string name="settings_gwm_adb_route_conflict">توجيه لوحة العدادات عبر ADB مفعّل في بطاقة خريطة لوحة العدادات. أوقفه هناك وإلا سيتم تخطي مسار GWM.</string>
+    <string name="settings_gwm_test_failed">تعذر فتح الاختبار على الشاشة %1$d: %2$s</string>
 </resources>

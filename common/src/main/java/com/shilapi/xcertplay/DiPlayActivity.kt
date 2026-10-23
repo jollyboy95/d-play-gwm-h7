@@ -128,6 +128,7 @@ internal enum class SettingsSection {
     NAVIGATION_WHEEL,
     LOCATION,
     CLUSTER_MAP,
+    GWM_CLUSTER,
     LAUNCHER_BUBBLE,
     BYD_NAVIGATION,
     PERMISSIONS_AND_HELP,
@@ -157,6 +158,7 @@ internal object SettingsInformationArchitecture {
         SettingsCategory.DIAGNOSTICS to setOf(SettingsSection.DIAGNOSTICS),
         SettingsCategory.ADVANCED to setOf(
             SettingsSection.CLUSTER_MAP,
+            SettingsSection.GWM_CLUSTER,
             SettingsSection.LAUNCHER_BUBBLE,
             SettingsSection.EXPERIMENTAL_DISPLAY,
             SettingsSection.ADVANCED_MEDIA,
@@ -193,6 +195,11 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     private var pendingCarHotspotSetup = false
     private var hotspotJoinControls: HotspotJoinControls? = null
     private var setupError: String? = null
+    // GWM H7 cluster tools: last display scan, and the read-only steering probe while it runs.
+    private var gwmScanResult: String? = null
+    private var gwmSteeringObserver: org.dplay.gwm.GwmSteeringKeyObserver? = null
+    private val gwmSteeringEvents = ArrayDeque<String>()
+    private var gwmSteeringLabel: TextView? = null
     private var status: TextView? = null
     private var homeCardTitle: TextView? = null
     private var homeConnectionHint: TextView? = null
@@ -536,6 +543,116 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         interfaceOverride = next
         return false
     }
+    private fun gwmClusterSettings(card: LinearLayout) {
+        if (GwmMode.detected()) {
+            card.addView(label(getString(R.string.settings_gwm_detected), 14, MUTED))
+        } else {
+            toggle(card, getString(R.string.settings_gwm_force), getString(R.string.settings_gwm_force_description),
+                AirPlayPersistence.loadGwmForced(this)) {
+                AirPlayPersistence.saveGwmForced(this, it)
+                markReconnectNeeded()
+                render()
+            }
+        }
+        if (!GwmMode.active(this)) return
+
+        val displays = getSystemService(android.hardware.display.DisplayManager::class.java)?.displays.orEmpty()
+            .filter { it.displayId != android.view.Display.DEFAULT_DISPLAY }
+        val selected = GwmMode.selectedClusterDisplayId(this)
+        val ids = (displays.map { it.displayId } + selected).filter { it > android.view.Display.DEFAULT_DISPLAY }.distinct()
+        if (ids.isEmpty()) {
+            card.addView(label(getString(R.string.settings_gwm_no_displays), 14, WARNING))
+        } else {
+            val options = ids.map { id ->
+                displays.firstOrNull { it.displayId == id }?.let { display ->
+                    val size = ClusterMapPresentation.sizeOf(display)
+                    "$id · ${display.name} · ${size.x}×${size.y}"
+                } ?: getString(R.string.settings_gwm_display_missing, id)
+            }
+            choice(card, getString(R.string.settings_gwm_cluster_display), options, ids.indexOf(selected).coerceAtLeast(0)) { index ->
+                AirPlayPersistence.saveGwmClusterDisplayId(this, ids[index])
+                render()
+            }
+            card.addView(label(getString(R.string.settings_gwm_cluster_display_description), 14, MUTED))
+        }
+
+        val liveOn = AirPlayPersistence.loadGwmClusterOverlayEnabled(this) && AirPlayPersistence.loadClusterMapEnabled(this)
+        reconnectingToggle(card, getString(R.string.settings_gwm_live_output),
+            getString(R.string.settings_gwm_live_output_description), liveOn) { on ->
+            AirPlayPersistence.saveGwmClusterOverlayEnabled(this, on)
+            // The GWM route rides on the dashboard-map stream, so turning it on turns that on too.
+            if (on) AirPlayPersistence.saveClusterMapEnabled(this, true)
+            if (on && !Settings.canDrawOverlays(this)) openOverlayPermission()
+            markReconnectNeeded()
+            render()
+        }
+        val overlayAllowed = Settings.canDrawOverlays(this)
+        card.addView(label(getString(
+            if (overlayAllowed) R.string.settings_gwm_overlay_granted else R.string.settings_gwm_overlay_missing),
+            14, if (overlayAllowed) MUTED else WARNING))
+        if (!overlayAllowed) {
+            card.addView(button(getString(R.string.settings_gwm_overlay_allow), false) { openOverlayPermission() }, matchButton(10, 56))
+        }
+        if (AdbClusterRouter.enabled(this)) {
+            card.addView(label(getString(R.string.settings_gwm_adb_route_conflict), 14, WARNING))
+        }
+
+        card.addView(button(getString(R.string.settings_gwm_scan_displays), false) {
+            gwmScanResult = buildString {
+                append(org.dplay.gwm.GwmDisplayAdapter(this@DiPlayActivity).dump())
+                append(ClusterMapPresentation.diagnosticReport(this@DiPlayActivity))
+            }.trim()
+            render()
+        }, matchButton(10, 56))
+        gwmScanResult?.let { card.addView(label(it, 13, MUTED).apply { setTextIsSelectable(true) }) }
+
+        if (ids.isNotEmpty()) {
+            card.addView(button(getString(R.string.settings_gwm_launch_test), false) { launchGwmDisplayTest(selected) }, matchButton(10, 56))
+        }
+
+        val probing = gwmSteeringObserver != null
+        card.addView(button(getString(
+            if (probing) R.string.settings_gwm_stop_steering_probe else R.string.settings_gwm_start_steering_probe), false) {
+            if (gwmSteeringObserver != null) stopGwmSteeringProbe() else startGwmSteeringProbe()
+            render()
+        }, matchButton(10, 56))
+        gwmSteeringLabel = label(gwmSteeringText(), 13, MUTED).also { card.addView(it) }
+    }
+
+    private fun gwmSteeringText(): String =
+        if (gwmSteeringEvents.isEmpty()) getString(R.string.settings_gwm_steering_idle) else gwmSteeringEvents.joinToString("\n")
+
+    private fun startGwmSteeringProbe() {
+        if (gwmSteeringObserver != null) return
+        gwmSteeringEvents.clear()
+        gwmSteeringObserver = org.dplay.gwm.GwmSteeringKeyObserver { observation ->
+            runOnUiThread {
+                if (gwmSteeringObserver == null) return@runOnUiThread
+                gwmSteeringEvents.addFirst(observation.toString())
+                while (gwmSteeringEvents.size > 8) gwmSteeringEvents.removeLast()
+                gwmSteeringLabel?.text = gwmSteeringText()
+            }
+        }.also { it.start() }
+    }
+
+    private fun stopGwmSteeringProbe() {
+        gwmSteeringObserver?.stop()
+        gwmSteeringObserver = null
+    }
+
+    private fun launchGwmDisplayTest(displayId: Int) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            toast(getString(R.string.settings_gwm_test_failed, displayId, "Android 8.0+"))
+            return
+        }
+        val options = android.app.ActivityOptions.makeBasic().setLaunchDisplayId(displayId)
+        val intent = Intent(this, GwmDisplayTestActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+        runCatching { startActivity(intent, options.toBundle()) }.onFailure {
+            toast(getString(R.string.settings_gwm_test_failed, displayId, it.javaClass.simpleName))
+        }
+    }
+
     private fun openOverlayPermission() {
         val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
         if (runCatching { startActivity(intent) }.isFailure) {
@@ -609,6 +726,7 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     }
 
     override fun onDestroy() {
+        stopGwmSteeringProbe()
         settingsSearchPopup?.dismiss()
         appearanceObserverRemoval?.invoke()
         appearanceObserverRemoval = null
@@ -2200,6 +2318,8 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
                     else getString(R.string.center_map_overlay_missing, packageName), 14, if (overlay) MUTED else WARNING))
             }
         }
+        filteredSection(content, SettingsSection.GWM_CLUSTER,
+            getString(R.string.settings_gwm_card_title), R.drawable.ic_dp_dashboard) { card -> gwmClusterSettings(card) }
         // Cluster video does not require a BYD navigation broadcast receiver.
         filteredSection(content, SettingsSection.CLUSTER_MAP,
             getString(R.string.carplay_map_on_instrument_cluster_experimental), R.drawable.ic_dp_dashboard) { card ->

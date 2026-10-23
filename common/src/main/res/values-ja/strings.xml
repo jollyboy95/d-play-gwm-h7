@@ -1049,4 +1049,15 @@
     <string name="settings_auth_import_need_both">identity.pk8 と certificate.p7b を同時に選択してください。</string>
     <string name="settings_auth_import_not_found">このファイルには CarPlay 認証リソースがありません。</string>
     <string name="settings_auth_import_no_picker">このユニットにはファイル選択アプリがありません。</string>
+    <string name="settings_gwm_card_title">GWM H7 メーター（実験的機能）</string>
+    <string name="settings_gwm_detected">このユニットは GWM/Haval として認識されました。</string>
+    <string name="settings_gwm_force">このユニットを GWM/Haval として扱う</string>
+    <string name="settings_gwm_force_description">H7 で GWM のオプションが表示されない場合にオンにします。GWM メーター経路だけを有効にし、次回の接続から適用されます。</string>
+    <string name="settings_gwm_no_displays">現在 Android は中央ディスプレイ以外の画面を報告していません。車の電源を入れて再度お試しください。</string>
+    <string name="settings_gwm_display_missing">%1$d · 現在は未検出</string>
+    <string name="settings_gwm_overlay_granted">他のアプリの上に表示: 許可済み</string>
+    <string name="settings_gwm_overlay_missing">他のアプリの上に表示: 未許可。ライブのメーター表示に必要です。</string>
+    <string name="settings_gwm_overlay_allow">他のアプリの上に表示を許可</string>
+    <string name="settings_gwm_adb_route_conflict">メーター地図カードで ADB メーター経路がオンです。そこでオフにしないと GWM 経路はスキップされます。</string>
+    <string name="settings_gwm_test_failed">ディスプレイ %1$d でテストを開けませんでした: %2$s</string>
 </resources>

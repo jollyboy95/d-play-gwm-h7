@@ -947,4 +947,15 @@
     <string name="settings_auth_import_need_both">Selecciona identity.pk8 y certificate.p7b a la vez.</string>
     <string name="settings_auth_import_not_found">Este archivo no contiene recursos de autenticación de CarPlay.</string>
     <string name="settings_auth_import_no_picker">No hay selector de archivos en esta unidad.</string>
+    <string name="settings_gwm_card_title">Cuadro GWM H7 (experimental)</string>
+    <string name="settings_gwm_detected">Esta unidad se reconoció como GWM/Haval.</string>
+    <string name="settings_gwm_force">Tratar esta unidad como GWM/Haval</string>
+    <string name="settings_gwm_force_description">Actívalo si las opciones de GWM siguen ocultas en tu H7. Solo activa la ruta del cuadro GWM y se aplica en la próxima conexión.</string>
+    <string name="settings_gwm_no_displays">Android no informa ahora de ninguna pantalla aparte de la central. Inténtalo de nuevo con el coche encendido.</string>
+    <string name="settings_gwm_display_missing">%1$d · no informada ahora</string>
+    <string name="settings_gwm_overlay_granted">Mostrar sobre otras apps: permitido</string>
+    <string name="settings_gwm_overlay_missing">Mostrar sobre otras apps: no permitido. El flujo en directo del cuadro lo necesita.</string>
+    <string name="settings_gwm_overlay_allow">Permitir mostrar sobre otras apps</string>
+    <string name="settings_gwm_adb_route_conflict">La ruta del cuadro por ADB está activada en la tarjeta del mapa del cuadro. Desactívala allí o se omitirá la ruta GWM.</string>
+    <string name="settings_gwm_test_failed">No se pudo abrir la prueba en la pantalla %1$d: %2$s</string>
 </resources>
