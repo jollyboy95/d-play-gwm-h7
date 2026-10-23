@@ -399,7 +399,8 @@ object AirPlayPersistence {
     }
 
     fun supportedHotspotMode(mode: WirelessHotspotMode): WirelessHotspotMode = when {
-        mode == WirelessHotspotMode.WIFI_P2P && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q -> WirelessHotspotMode.MANUAL
+        // Wi-Fi Direct runs on Android 9 and newer (legacy channel path below Android 10).
+        mode == WirelessHotspotMode.WIFI_P2P && Build.VERSION.SDK_INT < Build.VERSION_CODES.P -> WirelessHotspotMode.MANUAL
         mode == WirelessHotspotMode.LOCAL_ONLY_HOTSPOT -> WirelessHotspotMode.MANUAL
         else -> mode
     }
