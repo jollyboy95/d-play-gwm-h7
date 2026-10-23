@@ -101,12 +101,23 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git add -f DiPlay-GWM-H7-arm64-debug.apk DiPlay-GWM-H7-arm64-debug.apk.sha256
-          if git diff --cached --quiet; then echo "APK unchanged"; exit 0; fi
-          git commit -m "Add GWM H7 arm64 debug APK (${GITHUB_SHA::7}) [skip ci]" \
-            -m "sha256 ${{ steps.apk.outputs.sha }}, built from ${GITHUB_SHA}"
+          # Keep the APK aside and commit it on top of the newest main. A rebase cannot merge two
+          # versions of the same binary, which is how an earlier run's APK commit blocked this one.
+          stash="$RUNNER_TEMP/apk-out"; mkdir -p "$stash"
+          cp DiPlay-GWM-H7-arm64-debug.apk DiPlay-GWM-H7-arm64-debug.apk.sha256 "$stash/"
           for i in 1 2 3; do
-            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            git fetch origin main
+            # A newer source commit has its own run that will publish a newer APK; do not overwrite it.
+            if ! git diff --quiet "$GITHUB_SHA" FETCH_HEAD -- . ':!DiPlay-GWM-H7-arm64-debug.apk' ':!DiPlay-GWM-H7-arm64-debug.apk.sha256'; then
+              echo "::notice::main has newer source than ${GITHUB_SHA::7}; leaving the APK to that run"; exit 0
+            fi
+            git checkout -f -B apk-publish FETCH_HEAD
+            cp "$stash"/* .
+            git add -f DiPlay-GWM-H7-arm64-debug.apk DiPlay-GWM-H7-arm64-debug.apk.sha256
+            if git diff --cached --quiet; then echo "APK unchanged"; exit 0; fi
+            git commit -m "Add GWM H7 arm64 debug APK (${GITHUB_SHA::7}) [skip ci]" \
+              -m "sha256 ${{ steps.apk.outputs.sha }}, built from ${GITHUB_SHA}"
+            git push origin HEAD:main && exit 0
             sleep 5
           done
           exit 1
