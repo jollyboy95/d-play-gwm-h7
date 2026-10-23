@@ -9,11 +9,15 @@
  */
 package org.dplay.gwm;
 
-import android.os.Handler;
 import android.os.Looper;
+import android.os.Handler;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * READ-ONLY observer for GWM steering-wheel key activity.
@@ -60,15 +64,22 @@ public final class GwmSteeringKeyObserver {
     private static final Pattern NOTIFY =
             Pattern.compile("\\[\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*]");
     private static final long POLL_INTERVAL_MS = 50L;
+        private static final ScheduledExecutorService POLL_EXECUTOR =
+            Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "gwm-steering-observer");
+            thread.setDaemon(true);
+            return thread;
+            });
 
     private final Listener listener;
     private final String property;
     private final long debounceMs;
-    private final Handler handler = new Handler(Looper.getMainLooper());
+        private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private String lastRaw = null;
     private long lastAtMs = 0L;
-    private boolean running = false;
+        private volatile boolean running = false;
+        private ScheduledFuture<?> polling;
 
     public GwmSteeringKeyObserver(Listener listener) {
         this(listener, GwmAdapterConfig.H7_DEFAULTS.steeringNotifyProperty,
@@ -81,27 +92,32 @@ public final class GwmSteeringKeyObserver {
         this.debounceMs = debounceMs;
     }
 
-    public void start() {
+    public synchronized void start() {
         if (running) return;
         running = true;
-        handler.post(pollTask);
+        polling = POLL_EXECUTOR.scheduleWithFixedDelay(
+                this::poll, 0L, POLL_INTERVAL_MS, TimeUnit.MILLISECONDS);
     }
 
-    public void stop() {
+    public synchronized void stop() {
         running = false;
-        handler.removeCallbacks(pollTask);
+        if (polling != null) {
+            polling.cancel(false);
+            polling = null;
+        }
     }
 
-    private final Runnable pollTask = new Runnable() {
-        @Override public void run() {
-            if (!running) return;
+    private void poll() {
+        if (!running) return;
+        try {
             String value = SystemPropertyReader.get(property);
             if (value != null && !value.isEmpty()) {
                 handleValue(value);
             }
-            handler.postDelayed(this, POLL_INTERVAL_MS);
+        } catch (RuntimeException ignored) {
+            // A vendor property implementation can fail independently of the app.
         }
-    };
+    }
 
     private void handleValue(String value) {
         Matcher m = NOTIFY.matcher(value);
@@ -121,7 +137,10 @@ public final class GwmSteeringKeyObserver {
             int a = Integer.parseInt(m.group(1));
             int b = Integer.parseInt(m.group(2));
             if (listener != null) {
-                listener.onObservation(new Observation(a, b, now));
+                Observation observation = new Observation(a, b, now);
+                mainHandler.post(() -> {
+                    if (running) listener.onObservation(observation);
+                });
             }
         } catch (NumberFormatException ignored) {
             // Non-numeric payload; ignore.

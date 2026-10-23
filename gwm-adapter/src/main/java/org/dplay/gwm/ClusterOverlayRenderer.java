@@ -13,6 +13,7 @@ import android.content.Context;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.view.Display;
+import android.view.View;
 import android.view.WindowManager;
 
 /**
@@ -30,7 +31,7 @@ import android.view.WindowManager;
 public final class ClusterOverlayRenderer {
 
     private final Context appContext;
-    private ClusterDialView view;
+    private View view;
     private WindowManager windowManager;
 
     public ClusterOverlayRenderer(Context context) {
@@ -47,6 +48,15 @@ public final class ClusterOverlayRenderer {
      *         missing overlay privilege).
      */
     public void show(int logicalDisplayId) {
+        showView(logicalDisplayId, false);
+    }
+
+    /** Show a clearly labelled test pattern without simulated vehicle readings. */
+    public void showTest(int logicalDisplayId) {
+        showView(logicalDisplayId, true);
+    }
+
+    private void showView(int logicalDisplayId, boolean testPattern) {
         hide();
         DisplayManager dm =
                 (DisplayManager) appContext.getSystemService(Context.DISPLAY_SERVICE);
@@ -61,7 +71,9 @@ public final class ClusterOverlayRenderer {
         WindowManager wm =
                 (WindowManager) displayContext.getSystemService(Context.WINDOW_SERVICE);
 
-        ClusterDialView content = new ClusterDialView(displayContext);
+        View content = testPattern
+            ? new GwmDisplayTestView(displayContext)
+            : new ClusterDialView(displayContext);
 
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
@@ -85,8 +97,8 @@ public final class ClusterOverlayRenderer {
 
     /** Push new driver values to the surface. No-op if not shown. */
     public void update(int speedKmh, int fuelPercent, int rangeKm, ClusterDialView.Turn turn) {
-        if (view != null) {
-            view.setValues(speedKmh, fuelPercent, rangeKm, turn);
+        if (view instanceof ClusterDialView) {
+            ((ClusterDialView) view).setValues(speedKmh, fuelPercent, rangeKm, turn);
         }
     }
 
