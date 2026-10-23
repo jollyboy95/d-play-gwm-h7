@@ -1020,4 +1020,11 @@
     <string name="settings_gwm_test_failed">无法在屏幕 %1$d 上打开测试：%2$s</string>
     <string name="settings_gwm_style">Aston 风格仪表</string>
     <string name="settings_gwm_style_description">在实时地图上显示带到达时间、剩余时间和距离的转向卡片，以及车速、油量、续航、挡位和车外温度。使用车辆自身数据，下次连接时生效。</string>
+    <string name="settings_gwm_hud">抬头显示信息条（实验性）</string>
+    <string name="settings_gwm_hud_description">在抬头显示上显示车速、导航时带距离的小转向箭头，以及续航和油量条。车辆自身的 HUD 信息仍然可见。返回 CarPlay 界面时生效。</string>
+    <string name="settings_gwm_hud_display">抬头显示</string>
+    <string name="settings_gwm_hud_position">信息条位置</string>
+    <string name="settings_gwm_hud_left">左</string>
+    <string name="settings_gwm_hud_centre">中</string>
+    <string name="settings_gwm_hud_right">右</string>
 </resources>

@@ -90,6 +90,10 @@ object AirPlayPersistence {
     private const val KEY_GWM_CLUSTER_OVERLAY_ENABLED = "gwm_cluster_overlay_enabled"
     private const val KEY_GWM_FORCED = "gwm_forced"
     private const val KEY_GWM_CLUSTER_STYLE = "gwm_cluster_style"
+    private const val KEY_GWM_HUD_ENABLED = "gwm_hud_enabled"
+    private const val KEY_GWM_HUD_DISPLAY_ID = "gwm_hud_display_id"
+    private const val KEY_GWM_HUD_ANCHOR = "gwm_hud_anchor"
+    const val GWM_HUD_DEFAULT_DISPLAY_ID = 3
 
     /**
      * The Geely cluster projection switch is DiPlay's right now. The switch belongs to the head unit
@@ -861,6 +865,30 @@ object AirPlayPersistence {
             editor.putInt(KEY_GWM_CLUSTER_DISPLAY_ID, displayId)
         }
         editor.apply()
+    }
+
+    fun loadGwmHudEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_GWM_HUD_ENABLED, false)
+
+    fun saveGwmHudEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_GWM_HUD_ENABLED, enabled).apply()
+    }
+
+    fun loadGwmHudDisplayId(context: Context): Int =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_GWM_HUD_DISPLAY_ID, GWM_HUD_DEFAULT_DISPLAY_ID)
+            .takeIf { it > android.view.Display.DEFAULT_DISPLAY } ?: GWM_HUD_DEFAULT_DISPLAY_ID
+
+    fun saveGwmHudDisplayId(context: Context, displayId: Int) {
+        if (displayId <= android.view.Display.DEFAULT_DISPLAY) return
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt(KEY_GWM_HUD_DISPLAY_ID, displayId).apply()
+    }
+
+    /** 0 left, 1 centre, 2 right. */
+    fun loadGwmHudAnchor(context: Context): Int =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_GWM_HUD_ANCHOR, 1).coerceIn(0, 2)
+
+    fun saveGwmHudAnchor(context: Context, anchor: Int) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt(KEY_GWM_HUD_ANCHOR, anchor.coerceIn(0, 2)).apply()
     }
 
     fun loadGwmClusterStyle(context: Context): Boolean =

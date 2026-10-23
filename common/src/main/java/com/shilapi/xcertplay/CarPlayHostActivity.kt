@@ -466,6 +466,11 @@ class CarPlayHostActivity : ComponentActivity() {
     private var gwmProjectionGeneration = 0
     // Aston-style GWM layer over the live map: turn card with ETA strip, and the vehicle strip.
     private var gwmTurnCard: ClusterTurnCardView? = null
+    // GWM head-up display strip (speed, small turn arrow, range and fuel) on its own display.
+    private var gwmHudOverlay: GwmHudOverlay? = null
+    private val gwmHudVehicleListener: (GwmVehicleData.Snapshot?) -> Unit = { snapshot ->
+        gwmHudOverlay?.view?.let { hud -> hud.post { hud.setSnapshot(snapshot) } }
+    }
     private var gwmHud: GwmClusterHudView? = null
     private val gwmVehicleListener: (GwmVehicleData.Snapshot?) -> Unit = { snapshot ->
         gwmHud?.let { hud -> hud.post { hud.setSnapshot(snapshot) } }
@@ -1257,6 +1262,7 @@ class CarPlayHostActivity : ComponentActivity() {
         ensureClusterPresentation()
         AirPlayPersistence.overlaySettingsListener = { runOnUiThread { applyClusterTurnOverlay() } }
         com.shilapi.xcertplay.hud.BydNavigationOutputs.setTurnOverlayListener(clusterTurnOverlayListener)
+        refreshGwmHud()
         mainHandler.removeCallbacks(refreshTurnOverlay)
         mainHandler.post(refreshTurnOverlay)
         var systemBarsChanged = false
@@ -1454,6 +1460,40 @@ class CarPlayHostActivity : ComponentActivity() {
         }
     }
 
+    /** Shows, moves or removes the GWM head-up strip to match the GWM settings. */
+    private fun refreshGwmHud() {
+        val wanted = GwmMode.active(this) && AirPlayPersistence.loadGwmHudEnabled(this) &&
+            android.provider.Settings.canDrawOverlays(this) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+        if (!wanted) {
+            stopGwmHud()
+            return
+        }
+        val target = AirPlayPersistence.loadGwmHudDisplayId(this)
+        val anchor = GwmHeadUpView.Anchor.entries[AirPlayPersistence.loadGwmHudAnchor(this)]
+        val current = gwmHudOverlay
+        if (current?.view != null && current.displayId == target) {
+            current.view?.setAnchor(anchor)
+            return
+        }
+        stopGwmHud()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val overlay = GwmHudOverlay(applicationContext)
+        runCatching { overlay.show(target, anchor) }
+            .onSuccess {
+                gwmHudOverlay = overlay
+                overlay.view?.setGuidance(clusterTurnGuidance)
+                GwmVehicleData.addListener(this, gwmHudVehicleListener)
+                appendLog("GWM HUD: strip shown on display $target")
+            }
+            .onFailure { appendLog("GWM HUD: not shown on display $target: ${it.javaClass.simpleName}: ${it.message}") }
+    }
+
+    private fun stopGwmHud() {
+        GwmVehicleData.removeListener(gwmHudVehicleListener)
+        gwmHudOverlay?.hide()
+        gwmHudOverlay = null
+    }
+
     private fun stopGwmProjectionOverlay() {
         gwmProjectionGeneration++
         GwmVehicleData.removeListener(gwmVehicleListener)
@@ -1562,6 +1602,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun applyClusterTurnOverlay() {
         val overlay = CarPlayClusterDisplay.usesCustomTurnCard(clusterContent())
         gwmTurnCard?.setGuidance(if (overlay) clusterTurnGuidance else null)
+        gwmHudOverlay?.view?.setGuidance(clusterTurnGuidance)
         // CN: the small-window navi keeps a second card rect, and the card glass has a theme override.
         val smallWindow = smallWindowActive()
         val xPercent = if (smallWindow) AirPlayPersistence.loadClusterSmallWindowCardXPercent(this)
@@ -2057,6 +2098,7 @@ class CarPlayHostActivity : ComponentActivity() {
         delayedDoubleSiri = null
         AirPlayPersistence.overlaySettingsListener = null
         com.shilapi.xcertplay.hud.BydNavigationOutputs.setTurnOverlayListener(null)
+        stopGwmHud()
         com.shilapi.xcertplay.hud.BydNavigationOutputs.setClusterNaviModeListener(null)
         clusterMonitor?.stop()
         getSystemService(android.hardware.display.DisplayManager::class.java)

@@ -592,6 +592,35 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
             markReconnectNeeded()
             render()
         }
+        toggle(card, getString(R.string.settings_gwm_hud), getString(R.string.settings_gwm_hud_description),
+            AirPlayPersistence.loadGwmHudEnabled(this)) { on ->
+            AirPlayPersistence.saveGwmHudEnabled(this, on)
+            if (on && !Settings.canDrawOverlays(this)) openOverlayPermission()
+            render()
+        }
+        if (AirPlayPersistence.loadGwmHudEnabled(this)) {
+            val hudSelected = AirPlayPersistence.loadGwmHudDisplayId(this)
+            val hudIds = (displays.map { it.displayId } + hudSelected)
+                .filter { it > android.view.Display.DEFAULT_DISPLAY }.distinct().sorted()
+            val hudOptions = hudIds.map { id ->
+                displays.firstOrNull { it.displayId == id }?.let { display ->
+                    val size = ClusterMapPresentation.sizeOf(display)
+                    "$id · ${display.name} · ${size.x}×${size.y}"
+                } ?: getString(R.string.settings_gwm_display_missing, id)
+            }
+            choice(card, getString(R.string.settings_gwm_hud_display), hudOptions,
+                hudIds.indexOf(hudSelected).coerceAtLeast(0), reconnects = false) { index ->
+                AirPlayPersistence.saveGwmHudDisplayId(this, hudIds[index])
+                render()
+            }
+            choice(card, getString(R.string.settings_gwm_hud_position), listOf(
+                getString(R.string.settings_gwm_hud_left),
+                getString(R.string.settings_gwm_hud_centre),
+                getString(R.string.settings_gwm_hud_right),
+            ), AirPlayPersistence.loadGwmHudAnchor(this), reconnects = false) { index ->
+                AirPlayPersistence.saveGwmHudAnchor(this, index)
+            }
+        }
         val overlayAllowed = Settings.canDrawOverlays(this)
         card.addView(label(getString(
             if (overlayAllowed) R.string.settings_gwm_overlay_granted else R.string.settings_gwm_overlay_missing),

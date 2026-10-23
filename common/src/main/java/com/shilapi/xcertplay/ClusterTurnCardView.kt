@@ -251,19 +251,7 @@ internal class ClusterTurnCardView(context: Context) : View(context) {
         }
     }
 
-    private fun glyphRes(icon: Int): Int = when (icon) {
-        2 -> R.drawable.ic_turn_card_turn_left
-        3 -> R.drawable.ic_turn_card_turn_right
-        4 -> R.drawable.ic_turn_card_turn_slight_left
-        5 -> R.drawable.ic_turn_card_turn_slight_right
-        6 -> R.drawable.ic_turn_card_turn_sharp_left
-        7 -> R.drawable.ic_turn_card_turn_sharp_right
-        8 -> R.drawable.ic_turn_card_u_turn_left
-        19 -> R.drawable.ic_turn_card_u_turn_right
-        11, 12, 17, 18 -> R.drawable.ic_turn_card_roundabout_right
-        15 -> R.drawable.ic_turn_card_sports_score
-        else -> R.drawable.ic_turn_card_straight
-    }
+    private fun glyphRes(icon: Int): Int = clusterTurnGlyphRes(icon)
 
     private fun distanceLabel(meters: Int): String = when {
         meters <= 20 -> context.getString(R.string.turn_card_now)
@@ -287,4 +275,19 @@ internal class ClusterTurnCardView(context: Context) : View(context) {
         while (end > 0 && paint.measureText(text.take(end) + ellipsis) > maxWidth) end--
         return if (end == 0) ellipsis else text.take(end) + ellipsis
     }
+}
+
+/** Turn glyph for an AMap NEW_ICON code; shared by the cluster card and the GWM head-up display. */
+internal fun clusterTurnGlyphRes(icon: Int): Int = when (icon) {
+    2 -> R.drawable.ic_turn_card_turn_left
+    3 -> R.drawable.ic_turn_card_turn_right
+    4 -> R.drawable.ic_turn_card_turn_slight_left
+    5 -> R.drawable.ic_turn_card_turn_slight_right
+    6 -> R.drawable.ic_turn_card_turn_sharp_left
+    7 -> R.drawable.ic_turn_card_turn_sharp_right
+    8 -> R.drawable.ic_turn_card_u_turn_left
+    19 -> R.drawable.ic_turn_card_u_turn_right
+    11, 12, 17, 18 -> R.drawable.ic_turn_card_roundabout_right
+    15 -> R.drawable.ic_turn_card_sports_score
+    else -> R.drawable.ic_turn_card_straight
 }
