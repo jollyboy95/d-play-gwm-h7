@@ -973,4 +973,7 @@
     <string name="settings_gwm_card_top_left">Arriba a la izquierda</string>
     <string name="settings_gwm_music_card">Tarjeta de reproducción</string>
     <string name="settings_gwm_music_card_description">Muestra la canción, el artista, la portada y el progreso arriba a la derecha mientras el iPhone reproduce música.</string>
+    <string name="settings_gwm_hud_test">Probar HUD (10 s)</string>
+    <string name="settings_gwm_hud_test_shown">Flecha de prueba en la pantalla %1$d durante 10 segundos.</string>
+    <string name="settings_gwm_hud_test_failed">No se pudo mostrar la prueba del HUD: %1$s</string>
 </resources>

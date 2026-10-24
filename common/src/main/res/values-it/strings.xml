@@ -1063,4 +1063,7 @@
     <string name="settings_gwm_card_top_left">In alto a sinistra</string>
     <string name="settings_gwm_music_card">Scheda in riproduzione</string>
     <string name="settings_gwm_music_card_description">Mostra brano, artista, copertina e avanzamento in alto a destra mentre l’iPhone riproduce musica.</string>
+    <string name="settings_gwm_hud_test">Prova HUD (10 s)</string>
+    <string name="settings_gwm_hud_test_shown">Freccia di prova sul display %1$d per 10 secondi.</string>
+    <string name="settings_gwm_hud_test_failed">Impossibile mostrare la prova HUD: %1$s</string>
 </resources>

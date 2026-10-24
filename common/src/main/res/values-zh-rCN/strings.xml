@@ -1033,4 +1033,7 @@
     <string name="settings_gwm_card_top_left">左上</string>
     <string name="settings_gwm_music_card">正在播放卡片</string>
     <string name="settings_gwm_music_card_description">iPhone 播放音乐时，在右上角显示歌曲、歌手、专辑封面和进度。</string>
+    <string name="settings_gwm_hud_test">测试抬头显示（10 秒）</string>
+    <string name="settings_gwm_hud_test_shown">已在屏幕 %1$d 上显示测试箭头 10 秒。</string>
+    <string name="settings_gwm_hud_test_failed">无法显示抬头显示测试：%1$s</string>
 </resources>

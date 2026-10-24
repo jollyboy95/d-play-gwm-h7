@@ -630,6 +630,9 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
             ), AirPlayPersistence.loadGwmHudAnchor(this), reconnects = false) { index ->
                 AirPlayPersistence.saveGwmHudAnchor(this, index)
             }
+            card.addView(button(getString(R.string.settings_gwm_hud_test), false) {
+                testGwmHud(hudSelected)
+            }, matchButton(10, 56))
         }
         val overlayAllowed = Settings.canDrawOverlays(this)
         card.addView(label(getString(
@@ -664,6 +667,32 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
             render()
         }, matchButton(10, 56))
         gwmSteeringLabel = label(gwmSteeringText(), 13, MUTED).also { card.addView(it) }
+    }
+
+    /** Shows a sample arrow on the HUD for ten seconds, so the display and permission can be checked parked. */
+    private fun testGwmHud(displayId: Int) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            toast(getString(R.string.settings_gwm_hud_test_failed, "Android 8.0+"))
+            return
+        }
+        if (!Settings.canDrawOverlays(this)) {
+            openOverlayPermission()
+            return
+        }
+        val overlay = GwmHudOverlay(applicationContext)
+        runCatching {
+            overlay.show(displayId, GwmHeadUpView.Anchor.entries[AirPlayPersistence.loadGwmHudAnchor(this)])
+            overlay.view?.setGuidance(com.shilapi.xcertplay.hud.ClusterTurnGuidance(
+                icon = 3, roundaboutExit = 0, distanceMeters = 300, road = "Test St",
+                arrivalEpochSeconds = System.currentTimeMillis() / 1000L + 600L,
+            ))
+        }.onSuccess {
+            toast(getString(R.string.settings_gwm_hud_test_shown, displayId))
+            handler.postDelayed({ overlay.hide() }, 10_000L)
+        }.onFailure {
+            overlay.hide()
+            toast(getString(R.string.settings_gwm_hud_test_failed, "${it.javaClass.simpleName}: ${it.message}"))
+        }
     }
 
     private fun gwmSteeringText(): String =

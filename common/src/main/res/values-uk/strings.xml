@@ -985,4 +985,7 @@
     <string name="settings_gwm_card_top_left">Угорі ліворуч</string>
     <string name="settings_gwm_music_card">Картка «Зараз грає»</string>
     <string name="settings_gwm_music_card_description">Показує вгорі праворуч трек, виконавця, обкладинку й прогрес, поки iPhone відтворює музику.</string>
+    <string name="settings_gwm_hud_test">Перевірити HUD (10 с)</string>
+    <string name="settings_gwm_hud_test_shown">Тестова стрілка на дисплеї %1$d протягом 10 секунд.</string>
+    <string name="settings_gwm_hud_test_failed">Не вдалося показати тест HUD: %1$s</string>
 </resources>

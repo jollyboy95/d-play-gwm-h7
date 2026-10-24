@@ -1075,4 +1075,7 @@
     <string name="settings_gwm_card_top_left">左上</string>
     <string name="settings_gwm_music_card">再生中カード</string>
     <string name="settings_gwm_music_card_description">iPhone で音楽を再生中、右上に曲名・アーティスト・アルバムアート・再生位置を表示します。</string>
+    <string name="settings_gwm_hud_test">HUD をテスト（10 秒）</string>
+    <string name="settings_gwm_hud_test_shown">ディスプレイ %1$d にテスト用の矢印を 10 秒間表示しています。</string>
+    <string name="settings_gwm_hud_test_failed">HUD テストを表示できませんでした: %1$s</string>
 </resources>

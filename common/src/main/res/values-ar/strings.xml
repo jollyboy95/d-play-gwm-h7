@@ -1022,4 +1022,7 @@
     <string name="settings_gwm_card_top_left">أعلى اليسار</string>
     <string name="settings_gwm_music_card">بطاقة قيد التشغيل</string>
     <string name="settings_gwm_music_card_description">يعرض المقطع والفنان وصورة الألبوم والتقدم في الأعلى يمينًا أثناء تشغيل iPhone للموسيقى.</string>
+    <string name="settings_gwm_hud_test">اختبار شاشة العرض الأمامية (10 ث)</string>
+    <string name="settings_gwm_hud_test_shown">سهم تجريبي معروض على الشاشة %1$d لمدة 10 ثوانٍ.</string>
+    <string name="settings_gwm_hud_test_failed">تعذر عرض اختبار شاشة العرض الأمامية: %1$s</string>
 </resources>

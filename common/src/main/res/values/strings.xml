@@ -1076,4 +1076,7 @@
     <string name="settings_gwm_card_top_left">Top left</string>
     <string name="settings_gwm_music_card">Now playing card</string>
     <string name="settings_gwm_music_card_description">Shows the track, artist, album art and progress top right while the iPhone plays music.</string>
+    <string name="settings_gwm_hud_test">Test HUD (10 s)</string>
+    <string name="settings_gwm_hud_test_shown">Sample arrow shown on display %1$d for 10 seconds.</string>
+    <string name="settings_gwm_hud_test_failed">HUD test could not be shown: %1$s</string>
 </resources>
