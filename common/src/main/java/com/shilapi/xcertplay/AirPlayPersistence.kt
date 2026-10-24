@@ -902,7 +902,7 @@ object AirPlayPersistence {
 
     /** 0 left, 1 centre, 2 right. */
     fun loadGwmHudAnchor(context: Context): Int =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_GWM_HUD_ANCHOR, 1).coerceIn(0, 2)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_GWM_HUD_ANCHOR, 0).coerceIn(0, 2)
 
     fun saveGwmHudAnchor(context: Context, anchor: Int) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt(KEY_GWM_HUD_ANCHOR, anchor.coerceIn(0, 2)).apply()

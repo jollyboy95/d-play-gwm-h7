@@ -111,12 +111,19 @@ internal class GwmHeadUpView(context: Context) : View(context) {
 
     /** Arrow on top, distance under it, arrival time last; everything centred and sized to fit. */
     private fun drawStacked(canvas: Canvas, next: ClusterTurnGuidance, distance: String, eta: String?, w: Float, h: Float) {
+        // On the H7 the car's own HUD layer covers most of display 3 and leaves the nav-arrow window
+        // on the left, so the position setting picks the column the stack is centred in.
+        val (regionLeft, regionWidth) = when (anchor) {
+            Anchor.LEFT -> 0f to w * 0.42f
+            Anchor.CENTRE -> 0f to w
+            Anchor.RIGHT -> w * 0.58f to w * 0.42f
+        }
         val lines = if (eta != null) 3.0f else 2.3f
-        val unit = minOf(h / lines, w * 0.62f)
+        val unit = minOf(h / lines, regionWidth * 0.62f)
         val arrow = unit * 1.05f
         val total = arrow + unit * 0.75f + (if (eta != null) unit * 0.55f else 0f)
         var y = (h - total) / 2f
-        val cx = w / 2f
+        val cx = regionLeft + regionWidth / 2f
         val res = clusterTurnGlyphRes(next.icon)
         if (res != glyphRes) {
             glyph = ContextCompat.getDrawable(context, res)?.mutate()?.apply { setTint(arrowTint) }
@@ -127,14 +134,14 @@ internal class GwmHeadUpView(context: Context) : View(context) {
         y += arrow
         distancePaint.textSize = unit * 0.55f
         distancePaint.textAlign = Paint.Align.CENTER
-        val shown = ellipsize(distance, w * 0.96f, distancePaint)
+        val shown = ellipsize(distance, regionWidth * 0.96f, distancePaint)
         canvas.drawText(shown, cx, y + unit * 0.62f, distancePaint)
         distancePaint.textAlign = Paint.Align.LEFT
         y += unit * 0.75f
         eta?.let {
             etaPaint.textSize = unit * 0.36f
             etaPaint.textAlign = Paint.Align.CENTER
-            canvas.drawText(ellipsize("$etaLabel $it", w * 0.96f, etaPaint), cx, y + unit * 0.42f, etaPaint)
+            canvas.drawText(ellipsize("$etaLabel $it", regionWidth * 0.96f, etaPaint), cx, y + unit * 0.42f, etaPaint)
             etaPaint.textAlign = Paint.Align.LEFT
         }
     }
