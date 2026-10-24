@@ -24,7 +24,8 @@ android {
         applicationId = "com.shihab.diplay"
         minSdk = 24
         targetSdk = 37
-        versionCode = 40
+        // CI revisions count up (r16 -> 1016) so each GWM build installs over the previous one.
+        versionCode = gwmRevision?.let { 1000 + it.toInt() } ?: 40
         versionName = "0.2.21"
         if (selectedAbiFilters.isNotEmpty()) {
             ndk { abiFilters.addAll(selectedAbiFilters) }
@@ -36,6 +37,14 @@ android {
     localAuthenticationAssets?.let { sourceSets.getByName("main").assets.srcDir(it) }
 
     signingConfigs {
+        // Fixed debug-only key so every GWM revision updates in place instead of needing an uninstall.
+        // Android debug keys are not secret; this is not a release or CarPlay credential.
+        create("gwmDebug") {
+            storeFile = file("gwm-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         create("release") {
             storeFile = file(
                 providers.environmentVariable("ANDROID_KEYSTORE_PATH")
@@ -50,6 +59,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".hudtest"
+            if (file("gwm-debug.keystore").isFile) signingConfig = signingConfigs.getByName("gwmDebug")
             versionNameSuffix = "-hud-test" + (gwmRevision?.let { "-gwm.r$it" } ?: "")
         }
         release {

@@ -13,6 +13,9 @@ failures = []
 # The GWM H7 workflow commits one source-only debug APK at the root. It is allowed only while it
 # holds no accessory identity and no credential container.
 published_apk = 'DiPlay-GWM-H7-arm64-debug.apk'
+# The fixed debug signing key that lets each GWM revision install over the last. Debug keys are not
+# secret (standard password "android"); allowed by exact path only, never as a release key.
+debug_keystore = 'mobile/gwm-debug.keystore'
 
 
 def credential_free_apk(path):
@@ -32,6 +35,8 @@ def credential_free_apk(path):
 for name in filter(None, names):
     path = root / name
     if not path.is_file():
+        continue
+    if name == debug_keystore:
         continue
     if name == published_apk:
         if not credential_free_apk(path):

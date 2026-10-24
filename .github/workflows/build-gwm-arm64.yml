@@ -87,6 +87,10 @@ jobs:
           abis=$(unzip -l "$built" | grep -o 'lib/[a-z0-9_-]*/' | sort -u | sed 's#lib/##; s#/$##' | tr '\n' ' ')
           echo "ABIs: $abis"
           [ "$(echo $abis)" = "arm64-v8a" ] || { echo "::error::expected only arm64-v8a, found [$abis]"; exit 1; }
+          signer=$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$built" | grep -m1 'certificate SHA-256 digest' | awk '{print $NF}')
+          echo "Signer SHA-256: $signer"
+          [ "$signer" = "d4b0e8b04cf569c62d02f56ea114490690b612b7bda75b28b890f4cc047149ab" ] \
+            || { echo "::error::APK is not signed with the fixed GWM debug key, so it would not install over the last revision"; exit 1; }
           if unzip -l "$built" | grep -q 'assets/offline-mfi/'; then
             echo "::error::APK unexpectedly contains accessory identity; refusing to commit it"; exit 1
           fi
