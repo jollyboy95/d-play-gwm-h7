@@ -46,7 +46,7 @@ internal class GwmClusterHudView(context: Context) : View(context) {
         style = Paint.Style.STROKE
         color = Color.argb(48, 255, 255, 255)
     }
-    private val bar = Paint().apply { color = Color.argb(236, 8, 14, 18) }
+    private val bar = Paint()
     private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(60, 255, 255, 255) }
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
     private val track = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(90, 255, 255, 255) }
@@ -73,6 +73,13 @@ internal class GwmClusterHudView(context: Context) : View(context) {
         if (next == guidance) return
         guidance = next
         invalidate()
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        bar.shader = android.graphics.LinearGradient(0f, h * 0.68f, 0f, h.toFloat(),
+            intArrayOf(Color.argb(0, 6, 10, 16), Color.argb(150, 6, 10, 16), Color.argb(215, 6, 10, 16)),
+            floatArrayOf(0f, 0.45f, 1f), android.graphics.Shader.TileMode.CLAMP)
     }
 
     override fun onAttachedToWindow() {
@@ -108,61 +115,63 @@ internal class GwmClusterHudView(context: Context) : View(context) {
         if (AirPlayPersistence.loadGwmMusicCard(context)) drawMusic(canvas, w, h)
     }
 
+    /**
+     * Lower row, laid out around the H7 stock theme with its lamps along the bottom: the car's
+     * EV, speed-limit and lane icons sit in the left fifth, READY under the centre, ECO near 79 %.
+     * A soft fade replaces a solid bar so the map runs to the bottom edge.
+     */
     private fun drawBottomBar(canvas: Canvas, w: Float, h: Float) {
         val data = snapshot ?: return
-        // The bar runs from 76 % down; our row sits in its upper part so the car's own lamp row
-        // (READY under the speed, speed limit under the fuel, drive mode right) shows beneath it.
-        val top = h * 0.76f
-        val bh = h * 0.165f
-        val mid = h * 0.865f
-        canvas.drawRect(0f, top, w, h, bar)
-        canvas.drawRect(0f, top, w, top + 1.5f, line)
+        canvas.drawRect(0f, h * 0.68f, w, h, bar)
+        val unit = h * 0.165f
+        val row = h * 0.835f
         val cx = w / 2f
-        for (x in floatArrayOf(cx - w * 0.105f, cx + w * 0.105f)) {
-            canvas.drawRect(x, mid - bh * 0.30f, x + 1.5f, mid + bh * 0.30f, line)
-        }
         text.color = Color.WHITE
         data.speedKph?.let { speed ->
+            val baseline = h * 0.855f
+            val number = speed.roundToInt().toString()
             text.typeface = bold
-            text.textSize = bh * 0.70f
-            text.textAlign = Paint.Align.RIGHT
-            val baseline = mid + bh * 0.25f
-            canvas.drawText(speed.roundToInt().toString(), cx + bh * 0.30f, baseline, text)
+            text.textSize = unit * 0.72f
+            text.textAlign = Paint.Align.CENTER
+            canvas.drawText(number, cx, baseline, text)
+            val half = text.measureText(number) / 2f
             text.typeface = medium
-            text.textSize = bh * 0.24f
+            text.textSize = unit * 0.22f
             text.textAlign = Paint.Align.LEFT
             text.color = dim
-            canvas.drawText("km/h", cx + bh * 0.45f, baseline, text)
+            canvas.drawText("km/h", cx + half + unit * 0.12f, baseline, text)
             text.color = Color.WHITE
         }
-        val left = w * 0.035f
+        // Fuel and range between the car's lane icon (about 18 %) and the speed.
+        val fuelLeft = w * 0.24f
         data.fuelPercent?.let { fuel ->
-            val icon = bh * 0.38f
-            drawPump(canvas, left, mid - icon / 2f, icon)
-            val barLeft = left + icon * 1.35f
-            val barW = w * 0.10f
-            val barH = bh * 0.07f
-            rect.set(barLeft, mid - barH / 2f, barLeft + barW, mid + barH / 2f)
+            val icon = unit * 0.36f
+            drawPump(canvas, fuelLeft, row - icon / 2f, icon)
+            val barLeft = fuelLeft + icon * 1.3f
+            val barW = w * 0.075f
+            val barH = unit * 0.07f
+            rect.set(barLeft, row - barH / 2f, barLeft + barW, row + barH / 2f)
             canvas.drawRoundRect(rect, barH, barH, track)
             rect.right = barLeft + barW * (fuel / 100f).coerceIn(0.03f, 1f)
             canvas.drawRoundRect(rect, barH, barH, if (fuel < 15f) low else fill)
         }
         data.rangeKm?.let { range ->
             text.typeface = medium
-            text.textSize = bh * 0.28f
+            text.textSize = unit * 0.27f
             text.textAlign = Paint.Align.LEFT
             canvas.drawText(String.format(Locale.getDefault(), "%d km", range.roundToInt()),
-                left + bh * 0.38f * 1.35f + w * 0.10f + w * 0.014f, mid + bh * 0.10f, text)
+                fuelLeft + unit * 0.36f * 1.3f + w * 0.075f + w * 0.012f, row + unit * 0.10f, text)
         }
+        // Odometer right of the car's ECO lamp.
         data.odometerKm?.let { odo ->
             text.typeface = medium
-            text.textSize = bh * 0.25f
+            text.textSize = unit * 0.24f
             text.textAlign = Paint.Align.RIGHT
             val value = NumberFormat.getIntegerInstance().format(odo.roundToInt()) + " km"
             val right = w - w * 0.022f
-            canvas.drawText(value, right, mid + bh * 0.09f, text)
+            canvas.drawText(value, right, row + unit * 0.09f, text)
             text.color = dim
-            canvas.drawText("ODO  ", right - text.measureText(value), mid + bh * 0.09f, text)
+            canvas.drawText("ODO  ", right - text.measureText(value), row + unit * 0.09f, text)
             text.color = Color.WHITE
         }
     }
@@ -217,7 +226,7 @@ internal class GwmClusterHudView(context: Context) : View(context) {
         val mw = w * 0.17f
         val mh = h * 0.185f
         val left = w - mw - w * 0.015f
-        val top = h * 0.10f
+        val top = h * 0.29f // below the car's top-right warning lamps
         val radius = mh * 0.14f
         rect.set(left, top, left + mw, top + mh)
         canvas.drawRoundRect(rect, radius, radius, glass)
