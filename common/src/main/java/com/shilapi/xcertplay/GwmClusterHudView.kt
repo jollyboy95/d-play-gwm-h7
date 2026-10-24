@@ -110,14 +110,16 @@ internal class GwmClusterHudView(context: Context) : View(context) {
 
     private fun drawBottomBar(canvas: Canvas, w: Float, h: Float) {
         val data = snapshot ?: return
-        val top = h * 0.835f
-        val bh = h - top
-        val mid = top + bh * 0.5f
+        // The bar runs from 76 % down; our row sits in its upper part so the car's own lamp row
+        // (READY under the speed, speed limit under the fuel, drive mode right) shows beneath it.
+        val top = h * 0.76f
+        val bh = h * 0.165f
+        val mid = h * 0.865f
         canvas.drawRect(0f, top, w, h, bar)
         canvas.drawRect(0f, top, w, top + 1.5f, line)
         val cx = w / 2f
         for (x in floatArrayOf(cx - w * 0.105f, cx + w * 0.105f)) {
-            canvas.drawRect(x, top + bh * 0.2f, x + 1.5f, h - bh * 0.2f, line)
+            canvas.drawRect(x, mid - bh * 0.30f, x + 1.5f, mid + bh * 0.30f, line)
         }
         text.color = Color.WHITE
         data.speedKph?.let { speed ->
