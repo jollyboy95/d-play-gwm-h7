@@ -76,7 +76,8 @@ internal class GwmHeadUpView(context: Context) : View(context) {
         val gap = unit * 0.28f
         // A small, squarish HUD area (just the arrow window) gets the stacked layout instead.
         if (w < h * 2.2f) {
-            drawStacked(canvas, next, distance, eta, w, h)
+            if (anchor == Anchor.LEFT) drawInNavWindow(canvas, next, distance, eta, w, h)
+            else drawStacked(canvas, next, distance, eta, w, h)
             return
         }
         val textW = maxOf(distancePaint.measureText(distance), minOf(roadPaint.measureText(road), unit * 3.2f))
@@ -110,6 +111,57 @@ internal class GwmHeadUpView(context: Context) : View(context) {
     }
 
     /** Arrow on top, distance under it, arrival time last; everything centred and sized to fit. */
+    /**
+     * The H7 HUD shows display 3 (480x240) only through its nav-arrow window, measured with a
+     * 10x5 grid as cells A3-C4: x 0-30 %, y 40-80 % (144x96 px). Arrow and distance on one line,
+     * arrival time below, all inside that window with a small margin.
+     */
+    private fun drawInNavWindow(canvas: Canvas, next: ClusterTurnGuidance, distance: String, eta: String?, w: Float, h: Float) {
+        val inset = h * 0.02f
+        val left = w * NAV_WINDOW_LEFT + inset
+        val right = w * NAV_WINDOW_RIGHT - inset
+        val top = h * NAV_WINDOW_TOP + inset
+        val bottom = h * NAV_WINDOW_BOTTOM - inset
+        val boxW = right - left
+        val boxH = bottom - top
+        val lineOne = if (eta != null) boxH * 0.64f else boxH
+        val arrow = minOf(lineOne * 0.92f, boxW * 0.40f)
+
+        val res = clusterTurnGlyphRes(next.icon)
+        if (res != glyphRes) {
+            glyph = ContextCompat.getDrawable(context, res)?.mutate()?.apply { setTint(arrowTint) }
+            glyphRes = res
+        }
+        val arrowTop = top + (lineOne - arrow) / 2f
+        glyph?.setBounds(left.toInt(), arrowTop.toInt(), (left + arrow).toInt(), (arrowTop + arrow).toInt())
+        glyph?.draw(canvas)
+
+        val textLeft = left + arrow + boxW * 0.05f
+        val textWidth = right - textLeft
+        distancePaint.textAlign = Paint.Align.LEFT
+        distancePaint.textSize = lineOne * 0.48f
+        while (distancePaint.textSize > 8f && distancePaint.measureText(distance) > textWidth) distancePaint.textSize *= 0.92f
+        val distanceBaseline = top + lineOne / 2f - (distancePaint.descent() + distancePaint.ascent()) / 2f
+        canvas.drawText(distance, textLeft, distanceBaseline, distancePaint)
+
+        eta?.let {
+            val lineTwoTop = top + lineOne
+            val lineTwo = bottom - lineTwoTop
+            etaPaint.textAlign = Paint.Align.LEFT
+            etaPaint.textSize = lineTwo * 0.72f
+            while (etaPaint.textSize > 8f && etaPaint.measureText(it) > boxW) etaPaint.textSize *= 0.92f
+            val etaBaseline = lineTwoTop + lineTwo / 2f - (etaPaint.descent() + etaPaint.ascent()) / 2f
+            canvas.drawText(it, left, etaBaseline, etaPaint)
+        }
+    }
+
+    private companion object {
+        const val NAV_WINDOW_LEFT = 0f
+        const val NAV_WINDOW_RIGHT = 0.30f
+        const val NAV_WINDOW_TOP = 0.40f
+        const val NAV_WINDOW_BOTTOM = 0.80f
+    }
+
     private fun drawStacked(canvas: Canvas, next: ClusterTurnGuidance, distance: String, eta: String?, w: Float, h: Float) {
         // On the H7 the car's own HUD layer covers most of display 3 and leaves the nav-arrow window
         // on the left, so the position setting picks the column the stack is centred in.
