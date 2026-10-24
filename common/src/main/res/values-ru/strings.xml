@@ -959,7 +959,7 @@
     <string name="settings_gwm_adb_route_conflict">В карточке карты на приборной панели включена маршрутизация через ADB. Отключите её там, иначе маршрут GWM будет пропущен.</string>
     <string name="settings_gwm_test_failed">Не удалось открыть тест на дисплее %1$d: %2$s</string>
     <string name="settings_gwm_style">Приборная панель в стиле Aston</string>
-    <string name="settings_gwm_style_description">Показывает поверх карты карточку манёвра со временем прибытия, оставшимся временем и расстоянием, а также скорость, топливо, запас хода, передачу и наружную температуру. Использует показания автомобиля и применяется при следующем подключении.</string>
+    <string name="settings_gwm_style_description">Показывает поверх карты карточку навигации со временем прибытия, оставшимся временем и расстоянием, карточку «Сейчас играет», а также скорость, топливо, запас хода, пробег и наружную температуру. Использует показания автомобиля и применяется при следующем подключении.</string>
     <string name="settings_gwm_hud">Полоса проекционного дисплея (экспериментально)</string>
     <string name="settings_gwm_hud_description">Показывает на HUD стрелку манёвра с расстоянием до него, название дороги и время прибытия — только во время маршрута. Скорость и свои показания автомобиль проецирует сам. Применяется при возврате на экран CarPlay.</string>
     <string name="settings_gwm_hud_display">Проекционный дисплей</string>
@@ -968,4 +968,9 @@
     <string name="settings_gwm_hud_centre">По центру</string>
     <string name="settings_gwm_hud_right">Справа</string>
     <string name="settings_gwm_hud_arrival">Прибытие</string>
+    <string name="settings_gwm_card_position">Положение карточки навигации</string>
+    <string name="settings_gwm_card_top_centre">Вверху по центру</string>
+    <string name="settings_gwm_card_top_left">Вверху слева</string>
+    <string name="settings_gwm_music_card">Карточка «Сейчас играет»</string>
+    <string name="settings_gwm_music_card_description">Показывает вверху справа трек, исполнителя, обложку и прогресс, пока iPhone играет музыку.</string>
 </resources>

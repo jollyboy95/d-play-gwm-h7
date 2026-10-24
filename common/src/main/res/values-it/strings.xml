@@ -1049,7 +1049,7 @@
     <string name="settings_gwm_adb_route_conflict">L’instradamento del quadro tramite ADB è attivo nella scheda della mappa del quadro. Disattivalo lì, altrimenti il percorso GWM viene saltato.</string>
     <string name="settings_gwm_test_failed">Impossibile aprire il test sul display %1$d: %2$s</string>
     <string name="settings_gwm_style">Quadro stile Aston</string>
-    <string name="settings_gwm_style_description">Disegna una scheda di svolta con orario di arrivo, tempo e distanza rimanenti, oltre a velocità, carburante, autonomia, marcia e temperatura esterna sopra la mappa in tempo reale. Usa le letture dell’auto e si applica alla connessione successiva.</string>
+    <string name="settings_gwm_style_description">Disegna sopra la mappa una scheda di navigazione con orario di arrivo, tempo e distanza rimanenti, una scheda in riproduzione e velocità, carburante, autonomia, contachilometri e temperatura esterna. Usa le letture dell’auto e si applica alla connessione successiva.</string>
     <string name="settings_gwm_hud">Striscia head-up display (sperimentale)</string>
     <string name="settings_gwm_hud_description">Mostra sull’HUD una freccia di svolta con la distanza, il nome della strada e l’orario di arrivo, solo durante un percorso. L’auto continua a proiettare velocità e indicazioni proprie. Si applica al ritorno alla schermata CarPlay.</string>
     <string name="settings_gwm_hud_display">Head-up display</string>
@@ -1058,4 +1058,9 @@
     <string name="settings_gwm_hud_centre">Centro</string>
     <string name="settings_gwm_hud_right">Destra</string>
     <string name="settings_gwm_hud_arrival">Arrivo</string>
+    <string name="settings_gwm_card_position">Posizione della scheda di navigazione</string>
+    <string name="settings_gwm_card_top_centre">In alto al centro</string>
+    <string name="settings_gwm_card_top_left">In alto a sinistra</string>
+    <string name="settings_gwm_music_card">Scheda in riproduzione</string>
+    <string name="settings_gwm_music_card_description">Mostra brano, artista, copertina e avanzamento in alto a destra mentre l’iPhone riproduce musica.</string>
 </resources>

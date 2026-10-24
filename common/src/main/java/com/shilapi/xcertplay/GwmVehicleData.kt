@@ -33,7 +33,9 @@ internal object GwmVehicleData {
     const val FUEL_PERCENT = "car.basic.remain_fuel_percentage"
     const val RANGE_KM = "car.basic.remain_odometer"
     const val OUTSIDE_TEMP = "car.basic.outside_temp"
-    val KEYS = arrayOf(SPEED, GEAR_STATUS, CURRENT_GEAR, FUEL_PERCENT, RANGE_KM, OUTSIDE_TEMP)
+    const val TOTAL_ODOMETER = "car.basic.total_odometer"
+    const val ODOMETER = "car.basic.odometer"
+    val KEYS = arrayOf(SPEED, GEAR_STATUS, CURRENT_GEAR, FUEL_PERCENT, RANGE_KM, OUTSIDE_TEMP, TOTAL_ODOMETER, ODOMETER)
 
     data class Snapshot(
         val speedKph: Float?,
@@ -42,6 +44,7 @@ internal object GwmVehicleData {
         val rangeKm: Float?,
         val outsideTempC: Float?,
         val atMillis: Long,
+        val odometerKm: Float? = null,
     ) {
         fun fresh(now: Long = SystemClock.elapsedRealtime()) = now - atMillis <= STALE_MILLIS
     }
@@ -142,6 +145,8 @@ internal object GwmVehicleData {
         rangeKm = number(values[RANGE_KM])?.takeIf { it in 0f..3000f },
         outsideTempC = number(values[OUTSIDE_TEMP])?.takeIf { it in -60f..80f },
         atMillis = now,
+        odometerKm = (number(values[TOTAL_ODOMETER])?.takeIf { it > 0f } ?: number(values[ODOMETER]))
+            ?.takeIf { it in 0f..2_000_000f },
     )
 
     /** gear_status 0 N, 2 D, 3 P, 4 R, 5 M; in D or M, current_gear 1..8 adds the step (D3, M3). */
@@ -165,7 +170,7 @@ internal object GwmVehicleData {
             appendLine("GWM vehicle data ($SERVICE): reachable")
             KEYS.forEach { appendLine("  $it = ${values[it] ?: "(no value)"}") }
             append("  → speed=${snapshot.speedKph} gear=${snapshot.gear} fuel=${snapshot.fuelPercent}% ")
-            append("range=${snapshot.rangeKm} km outside=${snapshot.outsideTempC} °C")
+            append("range=${snapshot.rangeKm} km outside=${snapshot.outsideTempC} °C odo=${snapshot.odometerKm} km")
         }
     }.getOrElse { "GWM vehicle data ($SERVICE): unavailable — ${it.javaClass.simpleName}: ${it.message}" }
 }

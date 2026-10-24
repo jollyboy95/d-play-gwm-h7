@@ -1,58 +1,67 @@
 package com.shilapi.xcertplay
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
-import android.graphics.Shader
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
+import android.os.SystemClock
 import android.view.View
+import androidx.core.content.ContextCompat
+import com.shilapi.xcertplay.host.R
+import com.shilapi.xcertplay.hud.ClusterTurnGuidance
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
- * The GWM H7 cluster strip drawn over the live CarPlay map: fuel and range, speed, gear along the
- * bottom and the outside temperature top right. Values come from [GwmVehicleData]; a missing or
- * stale value is left out rather than shown as a guess. Sizes follow the panel height.
+ * The GWM H7 cluster layer drawn over the live CarPlay map:
+ * - navigation card (turn, distance, road; arrival, time and distance left) top centre or top left;
+ * - now-playing card top right while the iPhone reports a track;
+ * - outside temperature top right;
+ * - bottom bar with fuel and range, speed, and odometer.
+ * Vehicle values come from [GwmVehicleData]; a missing or stale value is left out, never guessed.
+ * The car's own lamps (READY, gear, drive mode, warnings) draw above this layer.
  */
 internal class GwmClusterHudView(context: Context) : View(context) {
     private var snapshot: GwmVehicleData.Snapshot? = null
+    private var guidance: ClusterTurnGuidance? = null
+    private var music = ClusterMusicState.Snapshot()
+    private var musicReceivedAt = 0L
+    private var stopMusic: (() -> Unit)? = null
 
-    private val bandPaint = Paint()
-    private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
-        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+    private val sans = Typeface.create("sans-serif", Typeface.NORMAL)
+    private val medium = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+    private val bold = Typeface.create("sans-serif", Typeface.BOLD)
+    private val dim = Color.rgb(170, 180, 194)
+
+    private val glass = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(222, 14, 20, 26) }
+    private val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = Color.argb(48, 255, 255, 255)
     }
-    private val speedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
-        typeface = Typeface.create("sans-serif", Typeface.BOLD)
-        textAlign = Paint.Align.CENTER
-    }
-    private val unitPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.rgb(170, 178, 192)
-        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-        textAlign = Paint.Align.CENTER
-    }
-    private val track = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(110, 255, 255, 255) }
+    private val bar = Paint().apply { color = Color.argb(236, 8, 14, 18) }
+    private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(60, 255, 255, 255) }
+    private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+    private val track = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(90, 255, 255, 255) }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
     private val low = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(255, 159, 10) }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.argb(220, 255, 255, 255)
-    }
-    private val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
-        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-        setShadowLayer(6f, 0f, 0f, Color.BLACK)
-        textAlign = Paint.Align.RIGHT
     }
+    private val art = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val rect = RectF()
-
-    init {
-        setLayerType(LAYER_TYPE_SOFTWARE, null) // the temperature shadow needs a software layer
-    }
+    private val clip = Path()
+    private var glyph: Drawable? = null
+    private var glyphRes = 0
+    private val tick = Runnable { invalidate() }
 
     fun setSnapshot(next: GwmVehicleData.Snapshot?) {
         if (next == snapshot) return
@@ -60,71 +69,230 @@ internal class GwmClusterHudView(context: Context) : View(context) {
         invalidate()
     }
 
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        val top = h * 0.70f
-        bandPaint.shader = LinearGradient(0f, top, 0f, h.toFloat(),
-            Color.argb(0, 5, 8, 15), Color.argb(235, 5, 8, 15), Shader.TileMode.CLAMP)
+    fun setGuidance(next: ClusterTurnGuidance?) {
+        if (next == guidance) return
+        guidance = next
+        invalidate()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        stopMusic = ClusterMusicState.observe {
+            music = it
+            musicReceivedAt = SystemClock.elapsedRealtime()
+            invalidate()
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        stopMusic?.invoke()
+        stopMusic = null
+        removeCallbacks(tick)
+        super.onDetachedFromWindow()
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val data = snapshot ?: return
         val w = width.toFloat()
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
-        canvas.drawRect(0f, h * 0.70f, w, h, bandPaint)
-
-        val cx = w / 2f
-        val baseline = h * 0.92f
-
-        // Speed, centred.
-        data.speedKph?.let { speed ->
-            speedPaint.textSize = h * 0.15f
-            canvas.drawText(speed.roundToInt().toString(), cx, h * 0.865f, speedPaint)
-            unitPaint.textSize = h * 0.034f
-            canvas.drawText("km/h", cx, h * 0.935f, unitPaint)
-        }
-
-        // Fuel bar and range, left of the speed.
-        val barRight = cx - h * 0.20f
-        val barWidth = h * 0.24f
-        val barTop = baseline - h * 0.045f
-        val barHeight = h * 0.017f
-        data.rangeKm?.let { range ->
+        drawBottomBar(canvas, w, h)
+        snapshot?.outsideTempC?.let { temp ->
+            text.typeface = medium
             text.textSize = h * 0.045f
+            text.textAlign = Paint.Align.RIGHT
+            text.color = Color.WHITE
+            canvas.drawText(String.format(Locale.getDefault(), "%d°C", temp.roundToInt()), w - w * 0.022f, h * 0.075f, text)
+        }
+        guidance?.takeIf { it.icon != 0 }?.let { drawNavigation(canvas, it, w, h) }
+        if (AirPlayPersistence.loadGwmMusicCard(context)) drawMusic(canvas, w, h)
+    }
+
+    private fun drawBottomBar(canvas: Canvas, w: Float, h: Float) {
+        val data = snapshot ?: return
+        val top = h * 0.835f
+        val bh = h - top
+        val mid = top + bh * 0.5f
+        canvas.drawRect(0f, top, w, h, bar)
+        canvas.drawRect(0f, top, w, top + 1.5f, line)
+        val cx = w / 2f
+        for (x in floatArrayOf(cx - w * 0.105f, cx + w * 0.105f)) {
+            canvas.drawRect(x, top + bh * 0.2f, x + 1.5f, h - bh * 0.2f, line)
+        }
+        text.color = Color.WHITE
+        data.speedKph?.let { speed ->
+            text.typeface = bold
+            text.textSize = bh * 0.70f
+            text.textAlign = Paint.Align.RIGHT
+            val baseline = mid + bh * 0.25f
+            canvas.drawText(speed.roundToInt().toString(), cx + bh * 0.30f, baseline, text)
+            text.typeface = medium
+            text.textSize = bh * 0.24f
             text.textAlign = Paint.Align.LEFT
-            val label = String.format(Locale.getDefault(), "%d km", range.roundToInt())
-            canvas.drawText(label, barRight - text.measureText(label), baseline - h * 0.02f, text)
+            text.color = dim
+            canvas.drawText("km/h", cx + bh * 0.45f, baseline, text)
+            text.color = Color.WHITE
         }
+        val left = w * 0.035f
         data.fuelPercent?.let { fuel ->
-            val left = barRight - barWidth - h * 0.20f
-            val iconSize = h * 0.05f
-            drawPump(canvas, left - iconSize * 1.25f, barTop - iconSize * 0.35f, iconSize)
-            rect.set(left, barTop, left + barWidth, barTop + barHeight)
-            canvas.drawRoundRect(rect, barHeight, barHeight, track)
-            rect.right = left + barWidth * (fuel / 100f).coerceIn(0.03f, 1f)
-            canvas.drawRoundRect(rect, barHeight, barHeight, if (fuel < 15f) low else fill)
+            val icon = bh * 0.38f
+            drawPump(canvas, left, mid - icon / 2f, icon)
+            val barLeft = left + icon * 1.35f
+            val barW = w * 0.10f
+            val barH = bh * 0.07f
+            rect.set(barLeft, mid - barH / 2f, barLeft + barW, mid + barH / 2f)
+            canvas.drawRoundRect(rect, barH, barH, track)
+            rect.right = barLeft + barW * (fuel / 100f).coerceIn(0.03f, 1f)
+            canvas.drawRoundRect(rect, barH, barH, if (fuel < 15f) low else fill)
         }
+        data.rangeKm?.let { range ->
+            text.typeface = medium
+            text.textSize = bh * 0.28f
+            text.textAlign = Paint.Align.LEFT
+            canvas.drawText(String.format(Locale.getDefault(), "%d km", range.roundToInt()),
+                left + bh * 0.38f * 1.35f + w * 0.10f + w * 0.014f, mid + bh * 0.10f, text)
+        }
+        data.odometerKm?.let { odo ->
+            text.typeface = medium
+            text.textSize = bh * 0.25f
+            text.textAlign = Paint.Align.RIGHT
+            val value = NumberFormat.getIntegerInstance().format(odo.roundToInt()) + " km"
+            val right = w - w * 0.022f
+            canvas.drawText(value, right, mid + bh * 0.09f, text)
+            text.color = dim
+            canvas.drawText("ODO  ", right - text.measureText(value), mid + bh * 0.09f, text)
+            text.color = Color.WHITE
+        }
+    }
 
-        // Gear badge, right of the speed.
-        data.gear?.let { gear ->
-            text.textSize = h * 0.055f
-            text.textAlign = Paint.Align.CENTER
-            val boxH = h * 0.075f
-            val boxW = maxOf(boxH, text.measureText(gear) + boxH * 0.5f)
-            val left = cx + h * 0.20f
-            val top = baseline - boxH * 0.95f
-            stroke.strokeWidth = h * 0.005f
-            rect.set(left, top, left + boxW, top + boxH)
-            canvas.drawRoundRect(rect, boxH * 0.24f, boxH * 0.24f, stroke)
-            canvas.drawText(gear, left + boxW / 2f, top + boxH * 0.76f, text)
-        }
+    private fun drawNavigation(canvas: Canvas, next: ClusterTurnGuidance, w: Float, h: Float) {
+        val cw = w * 0.235f
+        val ch = h * 0.20f
+        val topLeft = AirPlayPersistence.loadGwmCardAnchor(context) == 1
+        val left = if (topLeft) w * 0.06f else (w - cw) / 2f
+        val top = if (topLeft) h * 0.13f else h * 0.105f
+        val radius = ch * 0.16f
+        rect.set(left, top, left + cw, top + ch)
+        canvas.drawRoundRect(rect, radius, radius, glass)
+        edge.strokeWidth = h * 0.002f
+        canvas.drawRoundRect(rect, radius, radius, edge)
 
-        // Outside temperature, top right.
-        data.outsideTempC?.let { temp ->
-            shadow.textSize = h * 0.05f
-            canvas.drawText(String.format(Locale.getDefault(), "%d°C", temp.roundToInt()), w - h * 0.08f, h * 0.10f, shadow)
+        val res = clusterTurnGlyphRes(next.icon)
+        if (res != glyphRes) {
+            glyph = ContextCompat.getDrawable(context, res)?.mutate()?.apply { setTint(Color.WHITE) }
+            glyphRes = res
         }
+        val side = ch * 0.40f
+        val gx = left + ch * 0.12f
+        val gy = top + ch * 0.10f
+        glyph?.setBounds(gx.toInt(), gy.toInt(), (gx + side).toInt(), (gy + side).toInt())
+        glyph?.draw(canvas)
+
+        val textLeft = left + ch * 0.66f
+        val textWidth = left + cw - ch * 0.10f - textLeft
+        text.color = Color.WHITE
+        text.textAlign = Paint.Align.LEFT
+        text.typeface = bold
+        text.textSize = ch * 0.20f
+        canvas.drawText(fit(distanceLabel(next.distanceMeters), textWidth), textLeft, top + ch * 0.30f, text)
+        text.typeface = sans
+        text.textSize = ch * 0.155f
+        val road = if (next.roundaboutExit in 1..9) context.getString(R.string.turn_card_exit, next.roundaboutExit) else next.road
+        if (road.isNotEmpty()) canvas.drawText(fit(road, textWidth), textLeft, top + ch * 0.53f, text)
+
+        canvas.drawRect(left + ch * 0.12f, top + ch * 0.655f, left + cw - ch * 0.12f, top + ch * 0.655f + 1.5f, line)
+        val info = infoParts(next).joinToString("  ·  ")
+        if (info.isNotEmpty()) {
+            text.typeface = medium
+            text.textSize = ch * 0.135f
+            canvas.drawText(fit(info, left + cw - ch * 0.12f - textLeft), textLeft, top + ch * 0.87f, text)
+        }
+    }
+
+    private fun drawMusic(canvas: Canvas, w: Float, h: Float) {
+        val info = music.info
+        val title = info.title?.takeIf { it.isNotBlank() } ?: return
+        val mw = w * 0.17f
+        val mh = h * 0.185f
+        val left = w - mw - w * 0.015f
+        val top = h * 0.10f
+        val radius = mh * 0.14f
+        rect.set(left, top, left + mw, top + mh)
+        canvas.drawRoundRect(rect, radius, radius, glass)
+        edge.strokeWidth = h * 0.002f
+        canvas.drawRoundRect(rect, radius, radius, edge)
+
+        val side = mh * 0.76f
+        val ax = left + mh * 0.12f
+        val ay = top + (mh - side) / 2f
+        music.artwork?.takeUnless(Bitmap::isRecycled)?.let { bitmap ->
+            rect.set(ax, ay, ax + side, ay + side)
+            canvas.save()
+            clip.reset()
+            clip.addRoundRect(rect, side * 0.08f, side * 0.08f, Path.Direction.CW)
+            canvas.clipPath(clip)
+            canvas.drawBitmap(bitmap, null, rect, art)
+            canvas.restore()
+        }
+        val textLeft = ax + side + mh * 0.12f
+        val textWidth = left + mw - mh * 0.10f - textLeft
+        if (textWidth <= 0f) return
+        text.textAlign = Paint.Align.LEFT
+        text.color = Color.WHITE
+        text.typeface = bold
+        text.textSize = mh * 0.16f
+        canvas.drawText(fit(title, textWidth), textLeft, top + mh * 0.36f, text)
+        info.artist?.takeIf { it.isNotBlank() }?.let { artist ->
+            text.typeface = sans
+            text.textSize = mh * 0.135f
+            text.color = dim
+            canvas.drawText(fit(artist, textWidth), textLeft, top + mh * 0.58f, text)
+            text.color = Color.WHITE
+        }
+        val duration = info.durationMillis?.takeIf { it > 0 } ?: return
+        var elapsed = info.elapsedMillis ?: return
+        if (info.playing) {
+            elapsed += SystemClock.elapsedRealtime() - musicReceivedAt
+            removeCallbacks(tick)
+            postDelayed(tick, 1_000L)
+        }
+        val barH = mh * 0.035f
+        val barTop = top + mh * 0.76f
+        rect.set(textLeft, barTop, textLeft + textWidth, barTop + barH)
+        canvas.drawRoundRect(rect, barH, barH, track)
+        rect.right = textLeft + textWidth * (elapsed.toFloat() / duration).coerceIn(0f, 1f)
+        canvas.drawRoundRect(rect, barH, barH, fill)
+    }
+
+    private fun infoParts(next: ClusterTurnGuidance): List<String> {
+        val parts = mutableListOf<String>()
+        next.arrivalEpochSeconds?.takeIf { it > 0 }?.let { epoch ->
+            parts += context.getString(R.string.turn_card_info_arrival,
+                SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(epoch * 1000L)))
+        }
+        next.remainingSeconds?.takeIf { it > 0 }?.let { total ->
+            val hours = (total / 3600).toInt()
+            val minutes = ((total % 3600) / 60).toInt()
+            parts += if (hours > 0) context.getString(R.string.turn_card_info_duration_hm, hours, minutes)
+            else context.getString(R.string.turn_card_info_duration_m, minutes)
+        }
+        next.remainingMeters?.takeIf { it > 0 }?.let { meters ->
+            parts += context.getString(R.string.turn_card_info_km, meters / 1000.0)
+        }
+        return parts
+    }
+
+    private fun distanceLabel(meters: Int): String = when {
+        meters <= 20 -> context.getString(R.string.turn_card_now)
+        meters < 1000 -> context.getString(R.string.turn_card_distance_m, (meters / 10) * 10)
+        else -> context.getString(R.string.turn_card_distance_km, meters / 100 / 10f)
+    }
+
+    private fun fit(value: String, maxWidth: Float): String {
+        if (text.measureText(value) <= maxWidth) return value
+        var end = value.length
+        while (end > 0 && text.measureText(value.take(end) + "…") > maxWidth) end--
+        return value.take(end) + "…"
     }
 
     /** A plain fuel-pump outline: body, window and nozzle hose. */

@@ -1019,7 +1019,7 @@
     <string name="settings_gwm_adb_route_conflict">儀表地圖卡片中已開啟 ADB 儀表路由。請在那裡關閉，否則會略過 GWM 路由。</string>
     <string name="settings_gwm_test_failed">無法在螢幕 %1$d 上開啟測試：%2$s</string>
     <string name="settings_gwm_style">Aston 風格儀表</string>
-    <string name="settings_gwm_style_description">在即時地圖上顯示含抵達時間、剩餘時間和距離的轉向卡片，以及車速、油量、續航、檔位和車外溫度。使用車輛本身的數據，下次連線時生效。</string>
+    <string name="settings_gwm_style_description">在即時地圖上顯示含抵達時間、剩餘時間和距離的導航卡片、正在播放卡片，以及車速、油量、續航、里程和車外溫度。使用車輛本身的數據，下次連線時生效。</string>
     <string name="settings_gwm_hud">抬頭顯示資訊條（實驗性）</string>
     <string name="settings_gwm_hud_description">僅在導航時，於抬頭顯示上顯示轉向箭頭及到轉向處的距離、道路名稱和抵達時間。車速等資訊仍由車輛自行顯示。返回 CarPlay 畫面時生效。</string>
     <string name="settings_gwm_hud_display">抬頭顯示</string>
@@ -1028,4 +1028,9 @@
     <string name="settings_gwm_hud_centre">中</string>
     <string name="settings_gwm_hud_right">右</string>
     <string name="settings_gwm_hud_arrival">抵達</string>
+    <string name="settings_gwm_card_position">導航卡片位置</string>
+    <string name="settings_gwm_card_top_centre">頂部置中</string>
+    <string name="settings_gwm_card_top_left">左上</string>
+    <string name="settings_gwm_music_card">正在播放卡片</string>
+    <string name="settings_gwm_music_card_description">iPhone 播放音樂時，在右上角顯示歌曲、歌手、專輯封面和進度。</string>
 </resources>

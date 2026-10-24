@@ -91,6 +91,8 @@ object AirPlayPersistence {
     private const val KEY_GWM_FORCED = "gwm_forced"
     private const val KEY_GWM_CLUSTER_STYLE = "gwm_cluster_style"
     private const val KEY_GWM_HUD_ENABLED = "gwm_hud_enabled"
+    private const val KEY_GWM_CARD_ANCHOR = "gwm_card_anchor"
+    private const val KEY_GWM_MUSIC_CARD = "gwm_music_card"
     private const val KEY_GWM_HUD_DISPLAY_ID = "gwm_hud_display_id"
     private const val KEY_GWM_HUD_ANCHOR = "gwm_hud_anchor"
     const val GWM_HUD_DEFAULT_DISPLAY_ID = 3
@@ -865,6 +867,21 @@ object AirPlayPersistence {
             editor.putInt(KEY_GWM_CLUSTER_DISPLAY_ID, displayId)
         }
         editor.apply()
+    }
+
+    /** Navigation card on the GWM cluster: 0 top centre, 1 top left. */
+    fun loadGwmCardAnchor(context: Context): Int =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_GWM_CARD_ANCHOR, 0).coerceIn(0, 1)
+
+    fun saveGwmCardAnchor(context: Context, anchor: Int) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt(KEY_GWM_CARD_ANCHOR, anchor.coerceIn(0, 1)).apply()
+    }
+
+    fun loadGwmMusicCard(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_GWM_MUSIC_CARD, true)
+
+    fun saveGwmMusicCard(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_GWM_MUSIC_CARD, enabled).apply()
     }
 
     fun loadGwmHudEnabled(context: Context): Boolean =

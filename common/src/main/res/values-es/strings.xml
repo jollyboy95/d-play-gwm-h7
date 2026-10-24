@@ -959,7 +959,7 @@
     <string name="settings_gwm_adb_route_conflict">La ruta del cuadro por ADB está activada en la tarjeta del mapa del cuadro. Desactívala allí o se omitirá la ruta GWM.</string>
     <string name="settings_gwm_test_failed">No se pudo abrir la prueba en la pantalla %1$d: %2$s</string>
     <string name="settings_gwm_style">Cuadro estilo Aston</string>
-    <string name="settings_gwm_style_description">Dibuja una tarjeta de giro con hora de llegada, tiempo y distancia restantes, además de velocidad, combustible, autonomía, marcha y temperatura exterior sobre el mapa en directo. Usa las lecturas del propio coche y se aplica en la próxima conexión.</string>
+    <string name="settings_gwm_style_description">Dibuja sobre el mapa en directo una tarjeta de navegación con hora de llegada, tiempo y distancia restantes, una tarjeta de reproducción y la velocidad, combustible, autonomía, cuentakilómetros y temperatura exterior. Usa las lecturas del propio coche y se aplica en la próxima conexión.</string>
     <string name="settings_gwm_hud">Franja del head-up display (experimental)</string>
     <string name="settings_gwm_hud_description">Muestra en el HUD una flecha de giro con la distancia, el nombre de la vía y la hora de llegada, solo durante una ruta. El coche sigue proyectando su velocidad y sus datos. Se aplica al volver a la pantalla de CarPlay.</string>
     <string name="settings_gwm_hud_display">Head-up display</string>
@@ -968,4 +968,9 @@
     <string name="settings_gwm_hud_centre">Centro</string>
     <string name="settings_gwm_hud_right">Derecha</string>
     <string name="settings_gwm_hud_arrival">Llegada</string>
+    <string name="settings_gwm_card_position">Posición de la tarjeta de navegación</string>
+    <string name="settings_gwm_card_top_centre">Arriba al centro</string>
+    <string name="settings_gwm_card_top_left">Arriba a la izquierda</string>
+    <string name="settings_gwm_music_card">Tarjeta de reproducción</string>
+    <string name="settings_gwm_music_card_description">Muestra la canción, el artista, la portada y el progreso arriba a la derecha mientras el iPhone reproduce música.</string>
 </resources>

@@ -592,6 +592,16 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
             markReconnectNeeded()
             render()
         }
+        if (AirPlayPersistence.loadGwmClusterStyle(this)) {
+            choice(card, getString(R.string.settings_gwm_card_position), listOf(
+                getString(R.string.settings_gwm_card_top_centre),
+                getString(R.string.settings_gwm_card_top_left),
+            ), AirPlayPersistence.loadGwmCardAnchor(this), reconnects = false) { index ->
+                AirPlayPersistence.saveGwmCardAnchor(this, index)
+            }
+            toggle(card, getString(R.string.settings_gwm_music_card), getString(R.string.settings_gwm_music_card_description),
+                AirPlayPersistence.loadGwmMusicCard(this)) { AirPlayPersistence.saveGwmMusicCard(this, it) }
+        }
         toggle(card, getString(R.string.settings_gwm_hud), getString(R.string.settings_gwm_hud_description),
             AirPlayPersistence.loadGwmHudEnabled(this)) { on ->
             AirPlayPersistence.saveGwmHudEnabled(this, on)

@@ -1061,7 +1061,7 @@
     <string name="settings_gwm_adb_route_conflict">メーター地図カードで ADB メーター経路がオンです。そこでオフにしないと GWM 経路はスキップされます。</string>
     <string name="settings_gwm_test_failed">ディスプレイ %1$d でテストを開けませんでした: %2$s</string>
     <string name="settings_gwm_style">Aston スタイルのメーター</string>
-    <string name="settings_gwm_style_description">ライブ地図の上に、到着時刻・残り時間・残り距離付きの曲がり角カードと、速度・燃料・航続距離・ギア・外気温を表示します。車両自身の値を使い、次回の接続から適用されます。</string>
+    <string name="settings_gwm_style_description">ライブ地図の上に、到着時刻・残り時間・残り距離付きのナビカード、再生中カード、速度・燃料・航続距離・走行距離・外気温を表示します。車両自身の値を使い、次回の接続から適用されます。</string>
     <string name="settings_gwm_hud">ヘッドアップディスプレイ表示（実験的機能）</string>
     <string name="settings_gwm_hud_description">ルート案内中のみ、HUD に曲がり矢印と曲がり角までの距離、道路名、到着時刻を表示します。速度などは引き続き車両が表示します。CarPlay 画面に戻ると適用されます。</string>
     <string name="settings_gwm_hud_display">ヘッドアップディスプレイ</string>
@@ -1070,4 +1070,9 @@
     <string name="settings_gwm_hud_centre">中央</string>
     <string name="settings_gwm_hud_right">右</string>
     <string name="settings_gwm_hud_arrival">到着</string>
+    <string name="settings_gwm_card_position">ナビカードの位置</string>
+    <string name="settings_gwm_card_top_centre">上部中央</string>
+    <string name="settings_gwm_card_top_left">左上</string>
+    <string name="settings_gwm_music_card">再生中カード</string>
+    <string name="settings_gwm_music_card_description">iPhone で音楽を再生中、右上に曲名・アーティスト・アルバムアート・再生位置を表示します。</string>
 </resources>

@@ -465,7 +465,6 @@ class CarPlayHostActivity : ComponentActivity() {
     private var gwmProjectionOverlay: GwmLiveProjectionOverlay? = null
     private var gwmProjectionGeneration = 0
     // Aston-style GWM layer over the live map: turn card with ETA strip, and the vehicle strip.
-    private var gwmTurnCard: ClusterTurnCardView? = null
     // GWM head-up display strip (turn arrow, distance, road, arrival) on its own display.
     private var gwmHudOverlay: GwmHudOverlay? = null
     private var gwmHud: GwmClusterHudView? = null
@@ -1421,18 +1420,8 @@ class CarPlayHostActivity : ComponentActivity() {
             .also { gwmProjectionOverlay = it }
         val styled = AirPlayPersistence.loadGwmClusterStyle(this)
         val decor = if (!styled) null else GwmLiveProjectionOverlay.DecorFactory { displayContext ->
-            android.widget.FrameLayout(displayContext).apply {
-                val card = ClusterTurnCardView(displayContext).apply {
-                    // Below the steering-wheel rim, with the car's READY lamp in the gap above the strip.
-                    setFreePlacement(0.06f, 0.13f, 0.29f, stripTopFraction = 0.555f)
-                    setNightMode(true)
-                    setOpacity(AirPlayPersistence.loadClusterTurnCardOpacityPercent(this@CarPlayHostActivity))
-                    setGuidance(clusterTurnGuidance)
-                }
-                val hud = GwmClusterHudView(displayContext)
-                addView(card, android.widget.FrameLayout.LayoutParams(-1, -1))
-                addView(hud, android.widget.FrameLayout.LayoutParams(-1, -1))
-                gwmTurnCard = card
+            GwmClusterHudView(displayContext).also { hud ->
+                hud.setGuidance(clusterTurnGuidance)
                 gwmHud = hud
             }
         }
@@ -1494,7 +1483,6 @@ class CarPlayHostActivity : ComponentActivity() {
         gwmProjectionGeneration++
         GwmVehicleData.removeListener(gwmVehicleListener)
         gwmProjectionOverlay?.hide()
-        gwmTurnCard = null
         gwmHud = null
         val surface = clusterSurface
         if (surface != null) {
@@ -1597,7 +1585,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun applyClusterTurnOverlay() {
         val overlay = CarPlayClusterDisplay.usesCustomTurnCard(clusterContent())
-        gwmTurnCard?.setGuidance(if (overlay) clusterTurnGuidance else null)
+        gwmHud?.setGuidance(if (overlay) clusterTurnGuidance else null)
         gwmHudOverlay?.view?.setGuidance(clusterTurnGuidance)
         // CN: the small-window navi keeps a second card rect, and the card glass has a theme override.
         val smallWindow = smallWindowActive()
