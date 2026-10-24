@@ -147,11 +147,20 @@ internal class GwmHeadUpView(context: Context) : View(context) {
         eta?.let {
             val lineTwoTop = top + lineOne
             val lineTwo = bottom - lineTwoTop
+            // "ARRIVE 7:33 PM": a small grey label so the time reads as the arrival time.
+            val label = etaLabel.uppercase()
             etaPaint.textAlign = Paint.Align.LEFT
+            etaLabelPaint.textAlign = Paint.Align.LEFT
             etaPaint.textSize = lineTwo * 0.72f
-            while (etaPaint.textSize > 8f && etaPaint.measureText(it) > boxW) etaPaint.textSize *= 0.92f
+            fun rowWidth(): Float {
+                etaLabelPaint.textSize = etaPaint.textSize * 0.62f
+                return etaLabelPaint.measureText(label) + etaPaint.textSize * 0.3f + etaPaint.measureText(it)
+            }
+            while (etaPaint.textSize > 8f && rowWidth() > boxW) etaPaint.textSize *= 0.92f
             val etaBaseline = lineTwoTop + lineTwo / 2f - (etaPaint.descent() + etaPaint.ascent()) / 2f
-            canvas.drawText(it, left, etaBaseline, etaPaint)
+            canvas.drawText(label, left, etaBaseline, etaLabelPaint)
+            val timeLeft = left + etaLabelPaint.measureText(label) + etaPaint.textSize * 0.3f
+            canvas.drawText(it, timeLeft, etaBaseline, etaPaint)
         }
     }
 
