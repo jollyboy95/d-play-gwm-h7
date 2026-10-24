@@ -4,9 +4,11 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
+import android.graphics.Shader
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.os.SystemClock
@@ -21,12 +23,14 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
- * The GWM H7 cluster layer drawn over the live CarPlay map:
- * - navigation card (turn, distance, road; arrival, time and distance left) top centre or top left;
- * - now-playing card top right while the iPhone reports a track;
- * - outside temperature top right;
- * - bottom bar with fuel and range, speed, and odometer.
- * Vehicle values come from [GwmVehicleData]; a missing or stale value is left out, never guessed.
+ * The GWM H7 cluster layer over the live CarPlay map, in a quiet "glass" style:
+ * - navigation card (turn, distance, road; arrival, time and distance left), top centre or top left;
+ * - now-playing card on the right while the iPhone reports a track;
+ * - a slim lower row: fuel and range, speed, outside temperature and odometer.
+ *
+ * The cards imitate iOS glass with layered translucency, a top sheen, a hairline edge and a soft
+ * shadow. Android 9 on the H7 cannot blur the separate map video layer beneath, so there is no
+ * backdrop blur. Vehicle values come from [GwmVehicleData]; missing or stale values are left out.
  * The car's own lamps (READY, gear, drive mode, warnings) draw above this layer.
  */
 internal class GwmClusterHudView(context: Context) : View(context) {
@@ -36,28 +40,33 @@ internal class GwmClusterHudView(context: Context) : View(context) {
     private var musicReceivedAt = 0L
     private var stopMusic: (() -> Unit)? = null
 
-    private val sans = Typeface.create("sans-serif", Typeface.NORMAL)
+    private val light = Typeface.create("sans-serif-light", Typeface.NORMAL)
+    private val regular = Typeface.create("sans-serif", Typeface.NORMAL)
     private val medium = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-    private val bold = Typeface.create("sans-serif", Typeface.BOLD)
-    private val dim = Color.rgb(170, 180, 194)
+    private val secondary = Color.argb(178, 235, 240, 248)
+    private val label = Color.argb(140, 235, 240, 248)
+    /** The one accent, used sparingly: turn arrow, fuel level and music progress. */
+    private val accent = Color.rgb(143, 211, 255)
 
-    private val glass = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(222, 14, 20, 26) }
-    private val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        color = Color.argb(48, 255, 255, 255)
-    }
-    private val bar = Paint()
-    private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(60, 255, 255, 255) }
+    private val body = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val sheen = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val shade = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val hairline = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(46, 255, 255, 255) }
+    private val fade = Paint()
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
-    private val track = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(90, 255, 255, 255) }
-    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+    private val track = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(64, 255, 255, 255) }
+    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(235, 255, 255, 255) }
+    private val accentFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = accent }
     private val low = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(255, 159, 10) }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.WHITE
+        color = Color.argb(220, 255, 255, 255)
+        strokeCap = Paint.Cap.ROUND
     }
     private val art = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val rect = RectF()
+    private val glassRect = RectF()
     private val clip = Path()
     private var glyph: Drawable? = null
     private var glyphRes = 0
@@ -77,9 +86,9 @@ internal class GwmClusterHudView(context: Context) : View(context) {
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        bar.shader = android.graphics.LinearGradient(0f, h * 0.68f, 0f, h.toFloat(),
-            intArrayOf(Color.argb(0, 6, 10, 16), Color.argb(150, 6, 10, 16), Color.argb(215, 6, 10, 16)),
-            floatArrayOf(0f, 0.45f, 1f), android.graphics.Shader.TileMode.CLAMP)
+        fade.shader = LinearGradient(0f, h * FADE_TOP, 0f, h.toFloat(),
+            intArrayOf(Color.argb(0, 4, 8, 14), Color.argb(120, 4, 8, 14), Color.argb(175, 4, 8, 14)),
+            floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
     }
 
     override fun onAttachedToWindow() {
@@ -103,161 +112,206 @@ internal class GwmClusterHudView(context: Context) : View(context) {
         val w = width.toFloat()
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
-        drawBottomBar(canvas, w, h)
-        snapshot?.outsideTempC?.let { temp ->
-            text.typeface = medium
-            text.textSize = h * 0.045f
-            text.textAlign = Paint.Align.RIGHT
-            text.color = Color.WHITE
-            canvas.drawText(String.format(Locale.getDefault(), "%d°C", temp.roundToInt()), w - w * 0.022f, h * 0.075f, text)
-        }
+        drawLowerRow(canvas, w, h)
         guidance?.takeIf { it.icon != 0 }?.let { drawNavigation(canvas, it, w, h) }
         if (AirPlayPersistence.loadGwmMusicCard(context)) drawMusic(canvas, w, h)
     }
 
-    /**
-     * Lower row, laid out around the H7 stock theme with its lamps along the bottom: the car's
-     * EV, speed-limit and lane icons sit in the left fifth, READY under the centre, ECO near 79 %.
-     * A soft fade replaces a solid bar so the map runs to the bottom edge.
-     */
-    private fun drawBottomBar(canvas: Canvas, w: Float, h: Float) {
-        val data = snapshot ?: return
-        canvas.drawRect(0f, h * 0.68f, w, h, bar)
-        val unit = h * 0.165f
-        val row = h * 0.835f
-        val cx = w / 2f
+    // ---- glass ----------------------------------------------------------------------------
+
+    /** Frosted card: soft shadow, translucent body, top sheen, hairline edge and top highlight. */
+    private fun drawGlass(canvas: Canvas, box: RectF, radius: Float) {
+        // Soft shadow from a few widening, fading outlines (no blur filter on hardware layers).
+        for (step in 3 downTo 1) {
+            val grow = radius * 0.10f * step
+            glassRect.set(box.left - grow, box.top - grow * 0.4f, box.right + grow, box.bottom + grow * 1.4f)
+            shade.color = Color.argb(14 * (4 - step), 0, 0, 0)
+            canvas.drawRoundRect(glassRect, radius + grow, radius + grow, shade)
+        }
+        body.shader = LinearGradient(0f, box.top, 0f, box.bottom,
+            Color.argb(150, 44, 52, 66), Color.argb(178, 16, 20, 28), Shader.TileMode.CLAMP)
+        canvas.drawRoundRect(box, radius, radius, body)
+        sheen.shader = LinearGradient(0f, box.top, 0f, box.top + box.height() * 0.6f,
+            Color.argb(44, 255, 255, 255), Color.argb(0, 255, 255, 255), Shader.TileMode.CLAMP)
+        canvas.drawRoundRect(box, radius, radius, sheen)
+        edge.strokeWidth = maxOf(1.5f, box.height() * 0.008f)
+        edge.shader = LinearGradient(0f, box.top, 0f, box.bottom,
+            Color.argb(120, 255, 255, 255), Color.argb(22, 255, 255, 255), Shader.TileMode.CLAMP)
+        canvas.drawRoundRect(box, radius, radius, edge)
+    }
+
+    /** Small spaced capitals for labels (OUTSIDE, ODO, KM/H). */
+    private fun labelPaint(size: Float) {
+        text.typeface = medium
+        text.textSize = size
+        text.letterSpacing = 0.14f
+        text.color = label
+    }
+
+    private fun valuePaint(size: Float, face: Typeface = regular) {
+        text.typeface = face
+        text.textSize = size
+        text.letterSpacing = 0f
         text.color = Color.WHITE
+    }
+
+    // ---- lower row ------------------------------------------------------------------------
+
+    /**
+     * Slim lower row laid out around the H7 stock theme with its lamps along the bottom: the car's
+     * EV, speed-limit and lane icons in the left fifth, READY under the centre, ECO near 79 %.
+     */
+    private fun drawLowerRow(canvas: Canvas, w: Float, h: Float) {
+        val data = snapshot ?: return
+        canvas.drawRect(0f, h * FADE_TOP, w, h, fade)
+        val baseline = h * 0.875f
+        val cx = w / 2f
+        val labelSize = h * 0.024f
+        val valueSize = h * 0.038f
+
         data.speedKph?.let { speed ->
-            val baseline = h * 0.855f
             val number = speed.roundToInt().toString()
-            text.typeface = bold
-            text.textSize = unit * 0.72f
+            valuePaint(h * 0.105f, light)
             text.textAlign = Paint.Align.CENTER
             canvas.drawText(number, cx, baseline, text)
             val half = text.measureText(number) / 2f
-            text.typeface = medium
-            text.textSize = unit * 0.22f
+            labelPaint(labelSize)
             text.textAlign = Paint.Align.LEFT
-            text.color = dim
-            canvas.drawText("km/h", cx + half + unit * 0.12f, baseline, text)
-            text.color = Color.WHITE
+            canvas.drawText("KM/H", cx + half + h * 0.018f, baseline, text)
         }
+
         // Fuel and range between the car's lane icon (about 18 %) and the speed.
         val fuelLeft = w * 0.24f
+        val icon = h * 0.042f
         data.fuelPercent?.let { fuel ->
-            val icon = unit * 0.36f
-            drawPump(canvas, fuelLeft, row - icon / 2f, icon)
-            val barLeft = fuelLeft + icon * 1.3f
-            val barW = w * 0.075f
-            val barH = unit * 0.07f
-            rect.set(barLeft, row - barH / 2f, barLeft + barW, row + barH / 2f)
+            drawPump(canvas, fuelLeft, baseline - icon * 0.95f, icon)
+            val barLeft = fuelLeft + icon * 1.25f
+            val barW = w * 0.07f
+            val barH = h * 0.008f
+            val barY = baseline - icon * 0.45f
+            rect.set(barLeft, barY - barH / 2f, barLeft + barW, barY + barH / 2f)
             canvas.drawRoundRect(rect, barH, barH, track)
             rect.right = barLeft + barW * (fuel / 100f).coerceIn(0.03f, 1f)
-            canvas.drawRoundRect(rect, barH, barH, if (fuel < 15f) low else fill)
+            canvas.drawRoundRect(rect, barH, barH, if (fuel < 15f) low else accentFill)
         }
         data.rangeKm?.let { range ->
-            text.typeface = medium
-            text.textSize = unit * 0.27f
+            valuePaint(valueSize)
             text.textAlign = Paint.Align.LEFT
-            canvas.drawText(String.format(Locale.getDefault(), "%d km", range.roundToInt()),
-                fuelLeft + unit * 0.36f * 1.3f + w * 0.075f + w * 0.012f, row + unit * 0.10f, text)
+            val x = fuelLeft + icon * 1.25f + w * 0.07f + w * 0.012f
+            val value = String.format(Locale.getDefault(), "%d", range.roundToInt())
+            canvas.drawText(value, x, baseline, text)
+            val valueWidth = text.measureText(value)
+            labelPaint(labelSize)
+            canvas.drawText(" KM", x + valueWidth, baseline, text)
         }
-        // Odometer right of the car's ECO lamp.
+
+        // Outside temperature between the speed and the car's ECO lamp.
+        data.outsideTempC?.let { temp ->
+            val x = w * 0.585f
+            labelPaint(labelSize)
+            text.textAlign = Paint.Align.LEFT
+            canvas.drawText("OUTSIDE", x, baseline, text)
+            val labelWidth = text.measureText("OUTSIDE  ")
+            valuePaint(valueSize)
+            canvas.drawText(String.format(Locale.getDefault(), "%d°C", temp.roundToInt()), x + labelWidth, baseline, text)
+        }
+
+        // Odometer right of ECO.
         data.odometerKm?.let { odo ->
-            text.typeface = medium
-            text.textSize = unit * 0.24f
-            text.textAlign = Paint.Align.RIGHT
-            val value = NumberFormat.getIntegerInstance().format(odo.roundToInt()) + " km"
             val right = w - w * 0.022f
-            canvas.drawText(value, right, row + unit * 0.09f, text)
-            text.color = dim
-            canvas.drawText("ODO  ", right - text.measureText(value), row + unit * 0.09f, text)
-            text.color = Color.WHITE
+            valuePaint(valueSize)
+            text.textAlign = Paint.Align.RIGHT
+            val value = NumberFormat.getIntegerInstance().format(odo.roundToInt())
+            labelPaint(labelSize)
+            val unitWidth = text.measureText(" KM")
+            canvas.drawText(" KM", right, baseline, text)
+            valuePaint(valueSize)
+            text.textAlign = Paint.Align.RIGHT
+            canvas.drawText(value, right - unitWidth, baseline, text)
+            val valueWidth = text.measureText(value)
+            labelPaint(labelSize)
+            text.textAlign = Paint.Align.RIGHT
+            canvas.drawText("ODO  ", right - unitWidth - valueWidth, baseline, text)
         }
+        text.letterSpacing = 0f
     }
 
+    // ---- navigation card ------------------------------------------------------------------
+
     private fun drawNavigation(canvas: Canvas, next: ClusterTurnGuidance, w: Float, h: Float) {
-        val cw = w * 0.235f
-        val ch = h * 0.20f
+        val cw = w * 0.24f
+        val ch = h * 0.205f
         val topLeft = AirPlayPersistence.loadGwmCardAnchor(context) == 1
         val left = if (topLeft) w * 0.06f else (w - cw) / 2f
         val top = if (topLeft) h * 0.13f else h * 0.105f
-        val radius = ch * 0.16f
         rect.set(left, top, left + cw, top + ch)
-        canvas.drawRoundRect(rect, radius, radius, glass)
-        edge.strokeWidth = h * 0.002f
-        canvas.drawRoundRect(rect, radius, radius, edge)
+        val box = RectF(rect)
+        drawGlass(canvas, box, ch * 0.22f)
 
         val res = clusterTurnGlyphRes(next.icon)
         if (res != glyphRes) {
-            glyph = ContextCompat.getDrawable(context, res)?.mutate()?.apply { setTint(Color.WHITE) }
+            glyph = ContextCompat.getDrawable(context, res)?.mutate()?.apply { setTint(accent) }
             glyphRes = res
         }
         val side = ch * 0.40f
-        val gx = left + ch * 0.12f
-        val gy = top + ch * 0.10f
+        val gx = left + ch * 0.13f
+        val gy = top + ch * 0.11f
         glyph?.setBounds(gx.toInt(), gy.toInt(), (gx + side).toInt(), (gy + side).toInt())
         glyph?.draw(canvas)
 
-        val textLeft = left + ch * 0.66f
-        val textWidth = left + cw - ch * 0.10f - textLeft
-        text.color = Color.WHITE
+        val textLeft = left + ch * 0.68f
+        val textWidth = left + cw - ch * 0.12f - textLeft
         text.textAlign = Paint.Align.LEFT
-        text.typeface = bold
-        text.textSize = ch * 0.20f
-        canvas.drawText(fit(distanceLabel(next.distanceMeters), textWidth), textLeft, top + ch * 0.30f, text)
-        text.typeface = sans
-        text.textSize = ch * 0.155f
+        valuePaint(ch * 0.205f, medium)
+        canvas.drawText(fit(distanceLabel(next.distanceMeters), textWidth), textLeft, top + ch * 0.31f, text)
+        valuePaint(ch * 0.15f, light)
         val road = if (next.roundaboutExit in 1..9) context.getString(R.string.turn_card_exit, next.roundaboutExit) else next.road
         if (road.isNotEmpty()) canvas.drawText(fit(road, textWidth), textLeft, top + ch * 0.53f, text)
 
-        canvas.drawRect(left + ch * 0.12f, top + ch * 0.655f, left + cw - ch * 0.12f, top + ch * 0.655f + 1.5f, line)
-        val info = infoParts(next).joinToString("  ·  ")
+        canvas.drawRect(left + ch * 0.13f, top + ch * 0.655f, left + cw - ch * 0.13f, top + ch * 0.655f + 1.2f, hairline)
+        val info = infoParts(next).joinToString("   ·   ")
         if (info.isNotEmpty()) {
-            text.typeface = medium
-            text.textSize = ch * 0.135f
-            canvas.drawText(fit(info, left + cw - ch * 0.12f - textLeft), textLeft, top + ch * 0.87f, text)
+            valuePaint(ch * 0.128f)
+            text.color = secondary
+            canvas.drawText(fit(info, left + cw - ch * 0.13f - (left + ch * 0.13f)), left + ch * 0.13f, top + ch * 0.86f, text)
+            text.color = Color.WHITE
         }
     }
+
+    // ---- now playing ----------------------------------------------------------------------
 
     private fun drawMusic(canvas: Canvas, w: Float, h: Float) {
         val info = music.info
         val title = info.title?.takeIf { it.isNotBlank() } ?: return
-        val mw = w * 0.17f
-        val mh = h * 0.185f
-        val left = w - mw - w * 0.015f
+        val mw = w * 0.175f
+        val mh = h * 0.19f
+        val left = w - mw - w * 0.016f
         val top = h * 0.29f // below the car's top-right warning lamps
-        val radius = mh * 0.14f
-        rect.set(left, top, left + mw, top + mh)
-        canvas.drawRoundRect(rect, radius, radius, glass)
-        edge.strokeWidth = h * 0.002f
-        canvas.drawRoundRect(rect, radius, radius, edge)
+        val box = RectF(left, top, left + mw, top + mh)
+        drawGlass(canvas, box, mh * 0.22f)
 
-        val side = mh * 0.76f
-        val ax = left + mh * 0.12f
+        val side = mh * 0.72f
+        val ax = left + mh * 0.14f
         val ay = top + (mh - side) / 2f
         music.artwork?.takeUnless(Bitmap::isRecycled)?.let { bitmap ->
             rect.set(ax, ay, ax + side, ay + side)
             canvas.save()
             clip.reset()
-            clip.addRoundRect(rect, side * 0.08f, side * 0.08f, Path.Direction.CW)
+            clip.addRoundRect(rect, side * 0.14f, side * 0.14f, Path.Direction.CW)
             canvas.clipPath(clip)
             canvas.drawBitmap(bitmap, null, rect, art)
             canvas.restore()
         }
-        val textLeft = ax + side + mh * 0.12f
-        val textWidth = left + mw - mh * 0.10f - textLeft
+        val textLeft = ax + side + mh * 0.13f
+        val textWidth = left + mw - mh * 0.12f - textLeft
         if (textWidth <= 0f) return
         text.textAlign = Paint.Align.LEFT
-        text.color = Color.WHITE
-        text.typeface = bold
-        text.textSize = mh * 0.16f
+        valuePaint(mh * 0.155f, medium)
         canvas.drawText(fit(title, textWidth), textLeft, top + mh * 0.36f, text)
         info.artist?.takeIf { it.isNotBlank() }?.let { artist ->
-            text.typeface = sans
-            text.textSize = mh * 0.135f
-            text.color = dim
-            canvas.drawText(fit(artist, textWidth), textLeft, top + mh * 0.58f, text)
+            valuePaint(mh * 0.13f, light)
+            text.color = secondary
+            canvas.drawText(fit(artist, textWidth), textLeft, top + mh * 0.57f, text)
             text.color = Color.WHITE
         }
         val duration = info.durationMillis?.takeIf { it > 0 } ?: return
@@ -267,13 +321,15 @@ internal class GwmClusterHudView(context: Context) : View(context) {
             removeCallbacks(tick)
             postDelayed(tick, 1_000L)
         }
-        val barH = mh * 0.035f
+        val barH = mh * 0.028f
         val barTop = top + mh * 0.76f
         rect.set(textLeft, barTop, textLeft + textWidth, barTop + barH)
         canvas.drawRoundRect(rect, barH, barH, track)
         rect.right = textLeft + textWidth * (elapsed.toFloat() / duration).coerceIn(0f, 1f)
-        canvas.drawRoundRect(rect, barH, barH, fill)
+        canvas.drawRoundRect(rect, barH, barH, accentFill)
     }
+
+    // ---- helpers --------------------------------------------------------------------------
 
     private fun infoParts(next: ClusterTurnGuidance): List<String> {
         val parts = mutableListOf<String>()
@@ -306,14 +362,19 @@ internal class GwmClusterHudView(context: Context) : View(context) {
         return value.take(end) + "…"
     }
 
-    /** A plain fuel-pump outline: body, window and nozzle hose. */
+    /** A thin fuel-pump outline: body, window and nozzle hose. */
     private fun drawPump(canvas: Canvas, left: Float, top: Float, size: Float) {
-        stroke.strokeWidth = size * 0.11f
+        stroke.strokeWidth = size * 0.09f
         rect.set(left, top, left + size * 0.62f, top + size)
-        canvas.drawRoundRect(rect, size * 0.08f, size * 0.08f, stroke)
-        rect.set(left + size * 0.14f, top + size * 0.16f, left + size * 0.48f, top + size * 0.40f)
-        canvas.drawRect(rect, fill)
+        canvas.drawRoundRect(rect, size * 0.10f, size * 0.10f, stroke)
+        rect.set(left + size * 0.15f, top + size * 0.17f, left + size * 0.47f, top + size * 0.38f)
+        canvas.drawRoundRect(rect, size * 0.04f, size * 0.04f, fill)
         canvas.drawLine(left + size * 0.62f, top + size * 0.30f, left + size * 0.86f, top + size * 0.46f, stroke)
         canvas.drawLine(left + size * 0.86f, top + size * 0.46f, left + size * 0.86f, top + size * 0.86f, stroke)
+    }
+
+    private companion object {
+        /** Where the lower fade starts, as a fraction of the panel height. */
+        const val FADE_TOP = 0.78f
     }
 }
