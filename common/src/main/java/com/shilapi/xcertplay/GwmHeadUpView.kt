@@ -10,7 +10,6 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import com.shilapi.xcertplay.host.R
 import com.shilapi.xcertplay.hud.ClusterTurnGuidance
-import java.text.DateFormat
 import java.util.Date
 
 /**
@@ -71,7 +70,7 @@ internal class GwmHeadUpView(context: Context) : View(context) {
         val distance = distanceLabel(next.distanceMeters)
         val road = roadLabel(next)
         val eta = next.arrivalEpochSeconds?.takeIf { it > 0 }?.let {
-            DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it * 1000L))
+            java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault()).format(Date(it * 1000L)) // always 12-hour
         }
         val arrow = unit * 0.95f
         val gap = unit * 0.28f
