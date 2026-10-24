@@ -11,6 +11,9 @@ val localAuthenticationAssets = providers.environmentVariable("DIPLAY_AUTH_ASSET
 val selectedAbiFilters = providers.gradleProperty("diplyAbiFilters").orNull
     ?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
 
+// GWM H7 revision number from the build workflow (-PgwmRevision=N); shows as "-gwm.rN" in the version.
+val gwmRevision = providers.gradleProperty("gwmRevision").orNull?.takeIf { it.matches(Regex("\\d+")) }
+
 android {
     namespace = "com.shilapi.xcertplay"
     compileSdk {
@@ -47,7 +50,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".hudtest"
-            versionNameSuffix = "-hud-test"
+            versionNameSuffix = "-hud-test" + (gwmRevision?.let { "-gwm.r$it" } ?: "")
         }
         release {
             optimization {

@@ -10,6 +10,7 @@ on:
     paths-ignore:
       - 'DiPlay-GWM-H7-arm64-debug.apk'
       - 'DiPlay-GWM-H7-arm64-debug.apk.sha256'
+      - 'GWM-REVISIONS.md'
   workflow_dispatch:
 
 permissions:
@@ -25,6 +26,9 @@ jobs:
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
+
+      - name: Revision number
+        run: echo "Building GWM H7 revision r${{ github.run_number }} from ${GITHUB_SHA::7}"
 
       - name: Reject credential files in public source
         run: python3 scripts/check_public_tree.py
@@ -63,16 +67,16 @@ jobs:
           chmod +x "$RUNNER_TEMP/gradle-step.sh"
 
       - name: Focused resource compilation and manifest merge
-        run: $RUNNER_TEMP/gradle-step.sh resources :gwm-adapter:compileDebugLibraryResources :common:compileDebugLibraryResources :mobile:processDebugResources -PdiplyAbiFilters=arm64-v8a
+        run: $RUNNER_TEMP/gradle-step.sh resources :gwm-adapter:compileDebugLibraryResources :common:compileDebugLibraryResources :mobile:processDebugResources -PdiplyAbiFilters=arm64-v8a -PgwmRevision=${{ github.run_number }}
 
       - name: Unit tests
         run: $RUNNER_TEMP/gradle-step.sh unit-tests :shared:testDebugUnitTest :common:testDebugUnitTest
 
       - name: Lint
-        run: $RUNNER_TEMP/gradle-step.sh lint :mobile:lintDebug -PdiplyAbiFilters=arm64-v8a
+        run: $RUNNER_TEMP/gradle-step.sh lint :mobile:lintDebug -PdiplyAbiFilters=arm64-v8a -PgwmRevision=${{ github.run_number }}
 
       - name: Assemble arm64-v8a debug APK
-        run: $RUNNER_TEMP/gradle-step.sh assemble :mobile:assembleDebug -PdiplyAbiFilters=arm64-v8a
+        run: $RUNNER_TEMP/gradle-step.sh assemble :mobile:assembleDebug -PdiplyAbiFilters=arm64-v8a -PgwmRevision=${{ github.run_number }}
 
       - name: Verify, copy and hash-check the APK
         id: apk
@@ -86,14 +90,17 @@ jobs:
           if unzip -l "$built" | grep -q 'assets/offline-mfi/'; then
             echo "::error::APK unexpectedly contains accessory identity; refusing to commit it"; exit 1
           fi
-          "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$built" | grep -E "^package:|sdkVersion|targetSdkVersion|native-code"
+          badging=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$built")
+          printf '%s\n' "$badging" | grep -E "^package:|sdkVersion|targetSdkVersion|native-code"
+          printf '%s\n' "$badging" | grep -q "versionName='[^']*-gwm\.r${{ github.run_number }}'" \
+            || { echo "::error::APK version does not carry revision r${{ github.run_number }}"; exit 1; }
           cp "$built" DiPlay-GWM-H7-arm64-debug.apk
           src=$(sha256sum "$built" | cut -d' ' -f1)
           dst=$(sha256sum DiPlay-GWM-H7-arm64-debug.apk | cut -d' ' -f1)
           [ "$src" = "$dst" ] || { echo "::error::hash mismatch $src vs $dst"; exit 1; }
           echo "$dst  DiPlay-GWM-H7-arm64-debug.apk" > DiPlay-GWM-H7-arm64-debug.apk.sha256
           size=$(stat -c %s DiPlay-GWM-H7-arm64-debug.apk)
-          echo "::notice title=APK built::sha256 $dst, $size bytes, ABIs $abis"
+          echo "::notice title=APK built r${{ github.run_number }}::sha256 $dst, $size bytes, ABIs $abis"
           echo "sha=$dst" >> "$GITHUB_OUTPUT"
 
       - name: Commit the APK to main
@@ -108,14 +115,20 @@ jobs:
           for i in 1 2 3; do
             git fetch origin main
             # A newer source commit has its own run that will publish a newer APK; do not overwrite it.
-            if ! git diff --quiet "$GITHUB_SHA" FETCH_HEAD -- . ':!DiPlay-GWM-H7-arm64-debug.apk' ':!DiPlay-GWM-H7-arm64-debug.apk.sha256'; then
+            if ! git diff --quiet "$GITHUB_SHA" FETCH_HEAD -- . ':!DiPlay-GWM-H7-arm64-debug.apk' ':!DiPlay-GWM-H7-arm64-debug.apk.sha256' ':!GWM-REVISIONS.md'; then
               echo "::notice::main has newer source than ${GITHUB_SHA::7}; leaving the APK to that run"; exit 0
             fi
             git checkout -f -B apk-publish FETCH_HEAD
             cp "$stash"/* .
-            git add -f DiPlay-GWM-H7-arm64-debug.apk DiPlay-GWM-H7-arm64-debug.apk.sha256
+            rev="r${{ github.run_number }}"
+            [ -f GWM-REVISIONS.md ] || printf '%s\n\n%s\n%s\n' "# GWM H7 build revisions" \
+              "| Revision | Built (UTC) | Source | APK SHA-256 | Change |" "| --- | --- | --- | --- | --- |" > GWM-REVISIONS.md
+            subject=$(git log -1 --format=%s "$GITHUB_SHA" 2>/dev/null | tr '|' '/' || echo "")
+            printf '| %s | %s | %s | `%s` | %s |\n' "$rev" "$(date -u '+%Y-%m-%d %H:%M')" "${GITHUB_SHA::7}" \
+              "${{ steps.apk.outputs.sha }}" "$subject" >> GWM-REVISIONS.md
+            git add -f DiPlay-GWM-H7-arm64-debug.apk DiPlay-GWM-H7-arm64-debug.apk.sha256 GWM-REVISIONS.md
             if git diff --cached --quiet; then echo "APK unchanged"; exit 0; fi
-            git commit -m "Add GWM H7 arm64 debug APK (${GITHUB_SHA::7}) [skip ci]" \
+            git commit -m "GWM H7 $rev: arm64 debug APK (${GITHUB_SHA::7}) [skip ci]" \
               -m "sha256 ${{ steps.apk.outputs.sha }}, built from ${GITHUB_SHA}"
             git push origin HEAD:main && exit 0
             sleep 5
