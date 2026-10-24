@@ -339,8 +339,9 @@ internal class GwmClusterHudView(context: Context) : View(context) {
     private fun infoParts(next: ClusterTurnGuidance): List<String> {
         val parts = mutableListOf<String>()
         next.arrivalEpochSeconds?.takeIf { it > 0 }?.let { epoch ->
+            // Always 12-hour, whatever the phone or car is set to.
             parts += context.getString(R.string.turn_card_info_arrival,
-                SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(epoch * 1000L)) // always 12-hour)
+                SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(epoch * 1000L)))
         }
         next.remainingSeconds?.takeIf { it > 0 }?.let { total ->
             val hours = (total / 3600).toInt()
