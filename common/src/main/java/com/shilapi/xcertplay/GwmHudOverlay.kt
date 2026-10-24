@@ -30,7 +30,10 @@ internal class GwmHudOverlay(context: Context) {
         val windows = checkNotNull(displayContext.getSystemService(WindowManager::class.java)) {
             "WindowManager unavailable for display $targetDisplayId"
         }
-        val hud = GwmHeadUpView(displayContext).apply { setAnchor(anchor) }
+        val hud = GwmHeadUpView(displayContext).apply {
+            setAnchor(anchor)
+            setBackgroundColor(android.graphics.Color.BLACK)
+        }
         val layout = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -39,7 +42,9 @@ internal class GwmHudOverlay(context: Context) {
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
-            PixelFormat.TRANSLUCENT,
+            // Opaque like the live map window, which does reach the H7 HUD; a translucent window does
+            // not come through its HDMI path. Black is invisible on a windscreen HUD.
+            PixelFormat.OPAQUE,
         ).apply { gravity = Gravity.TOP or Gravity.START }
         windows.addView(hud, layout)
         view = hud

@@ -16,7 +16,7 @@ import java.util.Date
 /**
  * The GWM head-up display strip: turn arrow, distance to the turn, road name and arrival time,
  * only while a route is active. The car already projects speed and its own readouts, so nothing
- * else is drawn and the background stays transparent; with no route the strip is empty.
+ * else is drawn; the window is opaque black (invisible on the windscreen) and empty with no route.
  */
 internal class GwmHeadUpView(context: Context) : View(context) {
     enum class Anchor { LEFT, CENTRE, RIGHT }
