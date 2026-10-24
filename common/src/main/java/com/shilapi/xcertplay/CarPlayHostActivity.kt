@@ -1423,7 +1423,8 @@ class CarPlayHostActivity : ComponentActivity() {
         val decor = if (!styled) null else GwmLiveProjectionOverlay.DecorFactory { displayContext ->
             android.widget.FrameLayout(displayContext).apply {
                 val card = ClusterTurnCardView(displayContext).apply {
-                    setFreePlacement(0.022f, 0.05f, 0.29f)
+                    // Below the steering-wheel rim, with the car's READY lamp in the gap above the strip.
+                    setFreePlacement(0.06f, 0.13f, 0.29f, stripTopFraction = 0.555f)
                     setNightMode(true)
                     setOpacity(AirPlayPersistence.loadClusterTurnCardOpacityPercent(this@CarPlayHostActivity))
                     setGuidance(clusterTurnGuidance)

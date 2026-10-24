@@ -70,8 +70,11 @@ internal class ClusterTurnCardView(context: Context) : View(context) {
 
     /** Fixed card placement in panel fractions (GWM layout); null returns to the percent layout. */
     private var freeCard: FloatArray? = null
-    fun setFreePlacement(leftFraction: Float, topFraction: Float, widthFraction: Float) {
+    /** Where the info strip starts, as a fraction of the panel height; null hangs it under the card. */
+    private var freeStripTop: Float? = null
+    fun setFreePlacement(leftFraction: Float, topFraction: Float, widthFraction: Float, stripTopFraction: Float? = null) {
         freeCard = floatArrayOf(leftFraction, topFraction, widthFraction)
+        freeStripTop = stripTopFraction
         invalidate()
     }
 
@@ -180,7 +183,8 @@ internal class ClusterTurnCardView(context: Context) : View(context) {
         if (parts.isEmpty()) return
         val h = (cardHeight * 0.40f).coerceAtLeast(34f)
         val gap = cardHeight * 0.05f
-        val top = (belowTop + gap).coerceAtMost(height - h)
+        val top = freeStripTop?.let { (height * it).coerceAtLeast(belowTop + gap).coerceAtMost(height - h) }
+            ?: (belowTop + gap).coerceAtMost(height - h)
         infoPaint.textSize = h * 0.42f
         val separator = "   ·   "
         val text = parts.joinToString(separator)
