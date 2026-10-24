@@ -54,6 +54,7 @@ internal class GwmClusterHudView(context: Context) : View(context) {
     private val shade = Paint(Paint.ANTI_ALIAS_FLAG)
     private val hairline = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(46, 255, 255, 255) }
     private val fade = Paint()
+    private val bandSheen = Paint()
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
     private val track = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(64, 255, 255, 255) }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(235, 255, 255, 255) }
@@ -86,9 +87,12 @@ internal class GwmClusterHudView(context: Context) : View(context) {
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
+        // Frosted dark band: mutes the map quickly so the lower row reads clearly.
         fade.shader = LinearGradient(0f, h * FADE_TOP, 0f, h.toFloat(),
-            intArrayOf(Color.argb(0, 4, 8, 14), Color.argb(120, 4, 8, 14), Color.argb(175, 4, 8, 14)),
-            floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+            intArrayOf(Color.argb(0, 6, 10, 18), Color.argb(170, 6, 10, 18), Color.argb(212, 6, 10, 18), Color.argb(228, 6, 10, 18)),
+            floatArrayOf(0f, 0.28f, 0.55f, 1f), Shader.TileMode.CLAMP)
+        bandSheen.shader = LinearGradient(0f, h * (FADE_TOP + 0.03f), 0f, h * (FADE_TOP + 0.09f),
+            Color.argb(26, 255, 255, 255), Color.argb(0, 255, 255, 255), Shader.TileMode.CLAMP)
     }
 
     override fun onAttachedToWindow() {
@@ -164,6 +168,7 @@ internal class GwmClusterHudView(context: Context) : View(context) {
     private fun drawLowerRow(canvas: Canvas, w: Float, h: Float) {
         val data = snapshot ?: return
         canvas.drawRect(0f, h * FADE_TOP, w, h, fade)
+        canvas.drawRect(0f, h * (FADE_TOP + 0.03f), w, h * (FADE_TOP + 0.09f), bandSheen)
         val baseline = h * 0.875f
         val cx = w / 2f
         val labelSize = h * 0.024f
@@ -375,6 +380,6 @@ internal class GwmClusterHudView(context: Context) : View(context) {
 
     private companion object {
         /** Where the lower fade starts, as a fraction of the panel height. */
-        const val FADE_TOP = 0.78f
+        const val FADE_TOP = 0.74f
     }
 }
