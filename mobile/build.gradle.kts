@@ -25,8 +25,8 @@ android {
         minSdk = 24
         targetSdk = 37
         // CI revisions count up (r16 -> 1016) so each GWM build installs over the previous one.
-        versionCode = gwmRevision?.let { 1000 + it.toInt() } ?: 40
-        versionName = "0.2.21"
+        versionCode = gwmRevision?.let { 1000 + it.toInt() } ?: 41
+        versionName = "0.2.22"
         if (selectedAbiFilters.isNotEmpty()) {
             ndk { abiFilters.addAll(selectedAbiFilters) }
         }
